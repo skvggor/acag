@@ -31,10 +31,24 @@ lto = true
 codegen-units = 1
 strip = true
 
-# Keep the dev build snappy: lightly optimize our code, but fully optimize the
-# heavy dependencies (resvg/tiny-skia/slint) so the live preview stays smooth.
-[profile.dev]
-opt-level = 1
-
-[profile.dev.package."*"]
+# Keep dev/CI builds fast by optimizing only the SVG → raster hot path, so the
+# live preview stays smooth without optimizing all ~560 dependencies (which made
+# cold builds and CI slow). Everything else compiles cheaply at the dev default.
+[profile.dev.package.usvg]
+opt-level = 3
+[profile.dev.package.resvg]
+opt-level = 3
+[profile.dev.package.tiny-skia]
+opt-level = 3
+[profile.dev.package.tiny-skia-path]
+opt-level = 3
+[profile.dev.package.rustybuzz]
+opt-level = 3
+[profile.dev.package.ttf-parser]
+opt-level = 3
+[profile.dev.package.fontdb]
+opt-level = 3
+[profile.dev.package.png]
+opt-level = 3
+[profile.dev.package.fdeflate]
 opt-level = 3

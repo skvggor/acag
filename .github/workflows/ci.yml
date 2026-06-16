@@ -3,11 +3,13 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    paths-ignore: ["**.md", "docs/**", "assets/icons/**"]
   pull_request:
   workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
 
 jobs:
   quality:
@@ -42,6 +44,9 @@ jobs:
 
   coverage:
     name: Coverage (core ≥ 80%)
+    # The instrumented build is the most expensive job, so only run it where it
+    # matters: pull requests and pushes to main (not on every develop push).
+    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
