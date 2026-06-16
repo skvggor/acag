@@ -23,33 +23,39 @@ pub struct Ctx<'a> {
 }
 
 pub fn render_cover_svg(cfg: &CoverConfig) -> String {
-    let theme = cfg.theme.palette();
-    let black = Font::new(Weight::Black);
-    let ctx = Ctx {
-        cfg,
-        theme,
-        size: CANVAS,
-        black: &black,
-    };
+    thread_local! {
+        // Parsing the Montserrat Black face is reused across renders.
+        static TITLE_FONT: Font = Font::new(Weight::Black);
+    }
 
-    let texture = textured_panel(&ctx, 0.0, 0.0, CANVAS, CANVAS, theme.line, 0.05, "bg-tex");
-    let foreground = match cfg.layout {
-        Layout::Editorial => editorial::render(&ctx),
-        Layout::Bloco => bloco::render(&ctx),
-        Layout::Ma => ma::render(&ctx),
-    };
-    let grain = if cfg.grain > 0.0 {
-        grain_overlay(CANVAS, cfg.grain)
-    } else {
-        String::new()
-    };
+    TITLE_FONT.with(|black| {
+        let theme = cfg.theme.palette();
+        let ctx = Ctx {
+            cfg,
+            theme,
+            size: CANVAS,
+            black,
+        };
 
-    format!(
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{CANVAS}\" height=\"{CANVAS}\" \
-         viewBox=\"0 0 {CANVAS} {CANVAS}\">\
-         <rect width=\"{CANVAS}\" height=\"{CANVAS}\" fill=\"{bg}\"/>{texture}{foreground}{grain}</svg>",
-        bg = theme.bg.to_hex(),
-    )
+        let texture = textured_panel(&ctx, 0.0, 0.0, CANVAS, CANVAS, theme.line, 0.05, "bg-tex");
+        let foreground = match cfg.layout {
+            Layout::Editorial => editorial::render(&ctx),
+            Layout::Bloco => bloco::render(&ctx),
+            Layout::Ma => ma::render(&ctx),
+        };
+        let grain = if cfg.grain > 0.0 {
+            grain_overlay(CANVAS, cfg.grain)
+        } else {
+            String::new()
+        };
+
+        format!(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{CANVAS}\" height=\"{CANVAS}\" \
+             viewBox=\"0 0 {CANVAS} {CANVAS}\">\
+             <rect width=\"{CANVAS}\" height=\"{CANVAS}\" fill=\"{bg}\"/>{texture}{foreground}{grain}</svg>",
+            bg = theme.bg.to_hex(),
+        )
+    })
 }
 
 #[cfg(test)]

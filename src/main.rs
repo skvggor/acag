@@ -1,9 +1,12 @@
 slint::include_modules!();
 
 use std::rc::Rc;
+use std::time::Duration;
 
 use anyhow::Result;
-use slint::{Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, VecModel};
+use slint::{
+    Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, Timer, TimerMode, VecModel,
+};
 
 use article_cover_art_generator::cover::config::CoverConfig;
 use article_cover_art_generator::cover::layouts::Layout;
@@ -104,12 +107,23 @@ fn main() -> Result<()> {
     ui.set_size_index(1); // 4K by default
     ui.set_open_after(true);
 
+    // Debounce: coalesce rapid edits (slider drags, typing) into one render
+    // ~40 ms after the user stops, instead of rasterizing on every event.
+    let preview_timer = Rc::new(Timer::default());
     ui.on_changed({
         let handle = ui.as_weak();
+        let timer = preview_timer.clone();
         move || {
-            if let Some(ui) = handle.upgrade() {
-                refresh_preview(&ui);
-            }
+            let handle = handle.clone();
+            timer.start(
+                TimerMode::SingleShot,
+                Duration::from_millis(40),
+                move || {
+                    if let Some(ui) = handle.upgrade() {
+                        refresh_preview(&ui);
+                    }
+                },
+            );
         }
     });
 
