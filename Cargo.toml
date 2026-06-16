@@ -1,6 +1,6 @@
 [package]
 name = "article-cover-art-generator"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 description = "Native generator for 1:1 article cover art, in an Omakase / Japanese-constructivist style."
 authors = ["Marcos Lima <marckfree@gmail.com>"]
