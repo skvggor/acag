@@ -122,7 +122,3 @@ cargo run --example icon     # regenerate the app icon
 ## License
 
 [MIT](LICENSE).
-
-## The name
-
-**acag** is simply **a**rticle **c**over **a**rt **g**enerator.
