@@ -44,7 +44,7 @@ the sumi-ê palette) with [skvggor.dev](https://skvggor.dev) and
 - **Live preview** — every control updates the square preview instantly
 - **Adjustable film grain** and **pattern strength** sliders, shown live in the preview
 - **Omakase button** — randomizes the visual style and lets the house plate it for you
-- **Presets** — save/load the current look as TOML (`~/.config/article-cover-art-generator/`)
+- **Named presets** — save any number of looks as TOML and load/delete any of them (`~/.config/article-cover-art-generator/presets/`)
 - **WCAG AAA** — all readable text is forced to ≥ 7:1 contrast against its background
 - **Montserrat** Black / Bold / Regular, embedded in the binary (no system fonts needed)
 - **Export** — **2160² (2K)** or **4096² (4K)** PNG plus the resolution-independent source SVG,
@@ -84,7 +84,7 @@ It will then show up in the app launcher (walker/rofi). Run it from a terminal w
 1. Type a **title** (the only required field).
 2. Fill in optional **category / date / number / brand**.
 3. Pick a **theme**, **pattern** and **layout**; tune the **pattern strength** and **film grain** sliders.
-4. Hit **Omakase** to shuffle the style, or set it by hand; **Save / Load preset** to keep a look.
+4. Hit **Omakase** to shuffle the style, or set it by hand; name and **Save** a preset, then **Load** or **Delete** any saved one.
 5. Choose **2K or 4K**, then **Export PNG** or **Export SVG** (enable *Open after export* to view it).
 
 ## How it works

@@ -36,7 +36,7 @@ pub fn output_dir() -> PathBuf {
         .join("article-covers")
 }
 
-fn slug(title: &str) -> String {
+pub(crate) fn slug(title: &str) -> String {
     let mut out = String::new();
     let mut pending_dash = false;
     for ch in title.chars() {

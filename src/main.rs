@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use slint::{
-    Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, Timer, TimerMode, VecModel,
+    Image, Model, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, Timer, TimerMode, VecModel,
 };
 
 use article_cover_art_generator::cover::config::CoverConfig;
@@ -89,6 +89,11 @@ fn string_model(items: Vec<&str>) -> ModelRc<SharedString> {
     .into()
 }
 
+fn reload_presets(model: &VecModel<SharedString>) {
+    let names: Vec<SharedString> = preset::list().into_iter().map(SharedString::from).collect();
+    model.set_vec(names);
+}
+
 fn main() -> Result<()> {
     let ui = AppWindow::new()?;
 
@@ -102,6 +107,10 @@ fn main() -> Result<()> {
         Layout::ALL.iter().map(|l| l.label()).collect(),
     ));
     ui.set_sizes(string_model(vec!["2160 · 2K", "4096 · 4K"]));
+
+    let presets = Rc::new(VecModel::<SharedString>::default());
+    ui.set_presets(presets.clone().into());
+    reload_presets(&presets);
 
     apply_config(&ui, &CoverConfig::default());
     ui.set_size_index(1); // 4K by default
@@ -184,11 +193,23 @@ fn main() -> Result<()> {
 
     ui.on_save_preset({
         let handle = ui.as_weak();
+        let presets = presets.clone();
         move || {
             if let Some(ui) = handle.upgrade() {
-                let path = preset::default_path();
-                let status = match preset::save(&config_from_ui(&ui), &path) {
-                    Ok(()) => format!("Saved preset → {}", path.display()),
+                let typed = ui.get_preset_name().to_string();
+                let name = if typed.trim().is_empty() {
+                    ui.get_title_text().to_string()
+                } else {
+                    typed
+                };
+                let status = match preset::save(&name, &config_from_ui(&ui)) {
+                    Ok(stored) => {
+                        reload_presets(&presets);
+                        if let Some(index) = preset::list().iter().position(|n| n == &stored) {
+                            ui.set_preset_index(index as i32);
+                        }
+                        format!("Saved preset \"{stored}\"")
+                    }
                     Err(error) => format!("Save preset failed: {error}"),
                 };
                 ui.set_status(status.into());
@@ -198,17 +219,44 @@ fn main() -> Result<()> {
 
     ui.on_load_preset({
         let handle = ui.as_weak();
+        let presets = presets.clone();
         move || {
             if let Some(ui) = handle.upgrade() {
-                let path = preset::default_path();
-                match preset::load(&path) {
+                let index = ui.get_preset_index().max(0) as usize;
+                let Some(name) = presets.row_data(index) else {
+                    ui.set_status("Select a saved preset first".into());
+                    return;
+                };
+                match preset::load(name.as_str()) {
                     Ok(config) => {
                         apply_config(&ui, &config);
                         refresh_preview(&ui);
-                        ui.set_status(format!("Loaded preset ← {}", path.display()).into());
+                        ui.set_status(format!("Loaded preset \"{name}\"").into());
                     }
                     Err(error) => ui.set_status(format!("Load preset failed: {error}").into()),
                 }
+            }
+        }
+    });
+
+    ui.on_delete_preset({
+        let handle = ui.as_weak();
+        let presets = presets.clone();
+        move || {
+            if let Some(ui) = handle.upgrade() {
+                let index = ui.get_preset_index().max(0) as usize;
+                let Some(name) = presets.row_data(index) else {
+                    return;
+                };
+                let status = match preset::delete(name.as_str()) {
+                    Ok(()) => {
+                        reload_presets(&presets);
+                        ui.set_preset_index(0);
+                        format!("Deleted preset \"{name}\"")
+                    }
+                    Err(error) => format!("Delete preset failed: {error}"),
+                };
+                ui.set_status(status.into());
             }
         }
     });

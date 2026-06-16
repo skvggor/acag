@@ -76,6 +76,7 @@ export component AppWindow inherits Window {
     in property <[string]> patterns;
     in property <[string]> layouts;
     in property <[string]> sizes;
+    in property <[string]> presets;
 
     // Editable state.
     in-out property <string> title-text;
@@ -90,6 +91,8 @@ export component AppWindow inherits Window {
     in-out property <float> grain-value;
     in-out property <float> pattern-value;
     in-out property <bool> open-after;
+    in-out property <string> preset-name;
+    in-out property <int> preset-index;
 
     callback changed();
     callback export-png();
@@ -97,6 +100,7 @@ export component AppWindow inherits Window {
     callback omakase();
     callback save-preset();
     callback load-preset();
+    callback delete-preset();
 
     HorizontalBox {
         padding: 22px;
@@ -228,22 +232,47 @@ export component AppWindow inherits Window {
                             enabled: !root.exporting;
                             clicked => { root.export-png(); }
                         }
-                    }
-                    HorizontalBox {
-                        padding: 0;
-                        spacing: 10px;
                         Button {
                             text: "Export SVG";
                             enabled: !root.exporting;
                             clicked => { root.export-svg(); }
                         }
+                    }
+
+                    FieldLabel {
+                        text: "PRESETS";
+                        color: #d89868;
+                        font-weight: 800;
+                        letter-spacing: 1px;
+                    }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 12px;
+                        LabeledEdit {
+                            label: "Save as";
+                            placeholder: "preset name";
+                            value <=> root.preset-name;
+                        }
+                        LabeledCombo {
+                            label: "Saved";
+                            options: root.presets;
+                            index <=> root.preset-index;
+                        }
+                    }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 10px;
                         Button {
-                            text: "Save preset";
+                            text: "Save";
                             clicked => { root.save-preset(); }
                         }
                         Button {
-                            text: "Load preset";
+                            text: "Load";
                             clicked => { root.load-preset(); }
+                        }
+                        Button {
+                            text: "Delete";
+                            clicked => { root.delete-preset(); }
                         }
                     }
 
