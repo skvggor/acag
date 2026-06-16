@@ -1,48 +1,56 @@
 //! Ma (間) — maximum negative space: a kicker, a large title breathing near the
-//! top under an accent brush mark, a faint wagara seal in the bottom-right
-//! corner, and number/brand pinned to the footer corners.
+//! top, a faint wagara seal in the bottom-right corner, and number/brand pinned
+//! to the footer corners. Adapts to any aspect ratio.
 
 use crate::cover::elements::{Anchor, brand, kicker, number, seal_roundel, title_block};
 use crate::cover::render::Ctx;
 
 pub fn render(ctx: &Ctx) -> String {
-    let margin = 120.0;
+    let m = ctx.margin() * 1.15;
+    let (w, h) = (ctx.width, ctx.height);
     let mut svg = String::new();
 
+    // Faint seal in the bottom-right corner.
+    let seal_r = ctx.min_side() * 0.3;
     svg.push_str(&seal_roundel(
         ctx,
-        ctx.size - 80.0,
-        ctx.size - 80.0,
-        210.0,
+        w - seal_r * 0.25,
+        h - seal_r * 0.25,
+        seal_r,
         ctx.theme.line,
         0.12,
     ));
 
-    let kicker_baseline = margin + 30.0;
-    svg.push_str(&kicker(ctx, margin, kicker_baseline));
+    let kicker_baseline = m + 30.0;
+    svg.push_str(&kicker(ctx, m, kicker_baseline));
 
+    let title_top = kicker_baseline + 44.0;
+    let footer_baseline = h - m + 16.0;
+    // Leave generous Ma below the title.
+    let max_height = ((footer_baseline - 80.0 - title_top) * 0.82).max(80.0);
+    let max_width = w - 2.0 * m;
+    let max_size = (h * 0.16).clamp(60.0, 150.0);
     let title = title_block(
         ctx,
-        margin,
-        kicker_baseline + 170.0,
-        ctx.size - 2.0 * margin,
-        144.0,
-        72.0,
-        4,
+        m,
+        title_top,
+        max_width,
+        max_height,
+        max_size,
+        38.0,
         Anchor::Start,
         false,
     );
     svg.push_str(&title.svg);
 
-    let footer_baseline = ctx.size - margin + 16.0;
     svg.push_str(&number(
         ctx,
-        margin,
+        m,
         footer_baseline,
         Anchor::Start,
         ctx.theme.text,
-        30.0,
+        28.0,
     ));
-    svg.push_str(&brand(ctx, ctx.size - margin, footer_baseline, Anchor::End));
+    svg.push_str(&brand(ctx, w - m, footer_baseline, Anchor::End));
     svg
 }

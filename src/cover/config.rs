@@ -4,6 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::cover::format::Format;
 use crate::cover::layouts::Layout;
 use crate::design::patterns::Pattern;
 use crate::design::themes::ThemeName;
@@ -18,6 +19,7 @@ pub struct CoverConfig {
     pub theme: ThemeName,
     pub pattern: Pattern,
     pub layout: Layout,
+    pub format: Format,
     /// Film-grain intensity in `[0, 1]` (0 = off).
     pub grain: f64,
     /// Multiplier in `[0, 1]` for the wagara texture and seal opacity (0 = hidden).
@@ -35,6 +37,7 @@ impl Default for CoverConfig {
             theme: ThemeName::Terracotta,
             pattern: Pattern::Seigaiha,
             layout: Layout::Editorial,
+            format: Format::Square,
             grain: 0.0,
             pattern_strength: 1.0,
         }

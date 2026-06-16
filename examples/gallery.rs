@@ -2,6 +2,7 @@
 //! Run with: `cargo run --example gallery`.
 
 use article_cover_art_generator::cover::config::CoverConfig;
+use article_cover_art_generator::cover::format::Format;
 use article_cover_art_generator::cover::layouts::Layout;
 use article_cover_art_generator::cover::render_cover_svg;
 use article_cover_art_generator::design::patterns::Pattern;
@@ -12,6 +13,7 @@ fn main() -> anyhow::Result<()> {
     let out = std::path::Path::new("docs/samples");
     std::fs::create_dir_all(out)?;
 
+    // The square covers, one per layout, for a consistent row.
     let samples = [
         (
             ThemeName::Terracotta,
@@ -31,20 +33,7 @@ fn main() -> anyhow::Result<()> {
             Pattern::Shippo,
             "The quiet art of refactoring legacy code",
         ),
-        (
-            ThemeName::Matcha,
-            Layout::Editorial,
-            Pattern::Kikko,
-            "Type-driven development",
-        ),
-        (
-            ThemeName::Sakura,
-            Layout::Ma,
-            Pattern::Yabane,
-            "Writing tests you will not regret",
-        ),
     ];
-
     for (index, (theme, layout, pattern, title)) in samples.iter().enumerate() {
         let config = CoverConfig {
             title: (*title).to_owned(),
@@ -54,11 +43,28 @@ fn main() -> anyhow::Result<()> {
             pattern: *pattern,
             ..Default::default()
         };
-        let svg = render_cover_svg(&config);
         let name = format!("{index}-{}-{}", theme.label(), layout.label());
-        std::fs::write(out.join(format!("{name}.png")), png_bytes(&svg, 1080)?)?;
+        std::fs::write(
+            out.join(format!("{name}.png")),
+            png_bytes(&render_cover_svg(&config), 1080)?,
+        )?;
         println!("wrote {name}");
     }
+
+    // A 1.91:1 link/social cover, to show the non-square formats.
+    let social = CoverConfig {
+        title: "Design systems that scale".to_owned(),
+        theme: ThemeName::Matcha,
+        layout: Layout::Editorial,
+        pattern: Pattern::Seigaiha,
+        format: Format::Social,
+        ..Default::default()
+    };
+    std::fs::write(
+        out.join("social-link.png"),
+        png_bytes(&render_cover_svg(&social), 1200)?,
+    )?;
+    println!("wrote social-link");
 
     println!("gallery at {}", out.display());
     Ok(())

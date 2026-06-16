@@ -8,13 +8,11 @@ use anyhow::{Result, anyhow};
 use resvg::tiny_skia::{Pixmap, Transform};
 use resvg::usvg::{self, fontdb};
 
-use crate::cover::CANVAS;
-
 const FONT_REGULAR: &[u8] = include_bytes!("../assets/fonts/Montserrat-Regular.ttf");
 const FONT_BOLD: &[u8] = include_bytes!("../assets/fonts/Montserrat-Bold.ttf");
 const FONT_BLACK: &[u8] = include_bytes!("../assets/fonts/Montserrat-Black.ttf");
 
-/// Export sizes offered in the UI (square, in pixels).
+/// Export sizes offered in the UI (longest edge, in pixels).
 pub const EXPORT_2K: u32 = 2160;
 pub const EXPORT_4K: u32 = 4096;
 /// Default export size.
@@ -41,12 +39,16 @@ fn parse(svg: &str) -> Result<usvg::Tree> {
     usvg::Tree::from_str(svg, &options).map_err(|error| anyhow!("invalid cover SVG: {error}"))
 }
 
-/// Rasterize the 1080-unit cover SVG into a square pixmap of `pixels` per side.
-pub fn render_to_pixmap(svg: &str, pixels: u32) -> Result<Pixmap> {
+/// Rasterize the cover SVG so its longest edge is `longest_px` pixels, keeping
+/// the SVG's own aspect ratio (works for any format).
+pub fn render_to_pixmap(svg: &str, longest_px: u32) -> Result<Pixmap> {
     let tree = parse(svg)?;
-    let mut pixmap =
-        Pixmap::new(pixels, pixels).ok_or_else(|| anyhow!("invalid pixmap size {pixels}"))?;
-    let scale = pixels as f32 / CANVAS as f32;
+    let size = tree.size();
+    let scale = longest_px as f32 / size.width().max(size.height());
+    let width = (size.width() * scale).round() as u32;
+    let height = (size.height() * scale).round() as u32;
+    let mut pixmap = Pixmap::new(width, height)
+        .ok_or_else(|| anyhow!("invalid pixmap size {width}×{height}"))?;
     resvg::render(
         &tree,
         Transform::from_scale(scale, scale),
@@ -88,6 +90,7 @@ pub fn render_to_rgba(svg: &str, pixels: u32) -> Result<(u32, u32, Vec<u8>)> {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::field_reassign_with_default)]
     use super::*;
     use crate::cover::{CoverConfig, render_cover_svg};
 
@@ -99,6 +102,15 @@ mod tests {
         assert_eq!(pixmap.height(), 2160);
         // The background fills the canvas, so every pixel is opaque.
         assert!(pixmap.data().chunks_exact(4).all(|p| p[3] == 255));
+    }
+
+    #[test]
+    fn keeps_aspect_ratio_for_non_square_formats() {
+        use crate::cover::format::Format;
+        let mut cfg = CoverConfig::default();
+        cfg.format = Format::Social; // 1200×630
+        let pixmap = render_to_pixmap(&render_cover_svg(&cfg), 1200).expect("rasterize");
+        assert_eq!((pixmap.width(), pixmap.height()), (1200, 630));
     }
 
     #[test]

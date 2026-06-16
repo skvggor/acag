@@ -9,15 +9,15 @@ use crate::cover::elements::{
 use crate::cover::render::Ctx;
 
 pub fn render(ctx: &Ctx) -> String {
-    let margin = 96.0;
-    let column_width = 340.0;
-    let right_x = column_width + 72.0;
-    let right_width = ctx.size - right_x - margin;
+    let m = ctx.margin();
+    let (w, h) = (ctx.width, ctx.height);
+    let column_width = (w * 0.3).clamp(220.0, 480.0);
+    let right_x = column_width + (m * 0.8).max(48.0);
+    let right_width = w - right_x - m;
     let mut svg = String::new();
 
     svg.push_str(&format!(
-        "<rect x=\"0\" y=\"0\" width=\"{column_width:.1}\" height=\"{:.1}\" fill=\"{fill}\"/>",
-        ctx.size,
+        "<rect x=\"0\" y=\"0\" width=\"{column_width:.1}\" height=\"{h:.1}\" fill=\"{fill}\"/>",
         fill = ctx.theme.accent.to_hex(),
     ));
 
@@ -28,7 +28,7 @@ pub fn render(ctx: &Ctx) -> String {
         0.0,
         0.0,
         column_width,
-        ctx.size,
+        h,
         on_column,
         0.16,
         "col-tex",
@@ -36,30 +36,38 @@ pub fn render(ctx: &Ctx) -> String {
     svg.push_str(&number(
         ctx,
         column_width / 2.0,
-        margin + 90.0,
+        m + 70.0,
         Anchor::Middle,
         on_column,
-        64.0,
+        (column_width * 0.18).clamp(40.0, 72.0),
     ));
 
-    let kicker_baseline = margin + 60.0;
+    let kicker_baseline = m + 44.0;
     svg.push_str(&kicker(ctx, right_x, kicker_baseline));
 
+    let footer_baseline = h - m + 4.0;
+    let title_top = kicker_baseline + 36.0;
+    let max_height = (footer_baseline - 56.0 - title_top).max(80.0);
+    let max_size = (h * 0.14).clamp(54.0, 132.0);
     let title = title_block(
         ctx,
         right_x,
-        kicker_baseline + 130.0,
+        title_top,
         right_width,
-        118.0,
-        54.0,
-        5,
+        max_height,
+        max_size,
+        36.0,
         Anchor::Start,
         false,
     );
     svg.push_str(&title.svg);
 
-    let footer_baseline = ctx.size - margin - 8.0;
-    svg.push_str(&divider(ctx, right_x, footer_baseline - 46.0, 240.0));
+    svg.push_str(&divider(
+        ctx,
+        right_x,
+        footer_baseline - 42.0,
+        (right_width * 0.4).clamp(160.0, 300.0),
+    ));
     svg.push_str(&brand(ctx, right_x, footer_baseline, Anchor::Start));
     svg
 }

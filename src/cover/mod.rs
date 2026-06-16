@@ -2,10 +2,12 @@
 
 pub mod config;
 pub mod elements;
+pub mod format;
 pub mod layouts;
 pub mod render;
 pub mod typeset;
 
 pub use config::CoverConfig;
+pub use format::Format;
 pub use layouts::Layout;
-pub use render::{CANVAS, render_cover_svg};
+pub use render::render_cover_svg;

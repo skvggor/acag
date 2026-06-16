@@ -4,7 +4,7 @@
 //! so it clears WCAG AAA (7:1) against its immediate background.
 
 use crate::cover::render::Ctx;
-use crate::cover::typeset::Weight;
+use crate::cover::typeset::{LINE_HEIGHT, Weight};
 use crate::design::contrast::{Rgb, ensure_readable};
 
 pub fn esc(text: &str) -> String {
@@ -167,7 +167,7 @@ pub fn divider(ctx: &Ctx, x: f64, y: f64, w: f64) -> String {
 /// Film-grain overlay: fractal noise desaturated to gray and laid over the whole
 /// canvas at `intensity` in `[0, 1]`. Uses resvg's `feTurbulence` /
 /// `feColorMatrix` support, so it shows identically in preview and export.
-pub fn grain_overlay(size: f64, intensity: f64) -> String {
+pub fn grain_overlay(width: f64, height: f64, intensity: f64) -> String {
     let opacity = intensity.clamp(0.0, 1.0) * 0.22;
     format!(
         "<filter id=\"grain\" x=\"0\" y=\"0\" width=\"100%\" height=\"100%\" \
@@ -176,7 +176,7 @@ pub fn grain_overlay(size: f64, intensity: f64) -> String {
          stitchTiles=\"stitch\"/>\
          <feColorMatrix type=\"saturate\" values=\"0\"/>\
          </filter>\
-         <rect width=\"{size:.0}\" height=\"{size:.0}\" filter=\"url(#grain)\" opacity=\"{opacity:.3}\"/>"
+         <rect width=\"{width:.0}\" height=\"{height:.0}\" filter=\"url(#grain)\" opacity=\"{opacity:.3}\"/>"
     )
 }
 
@@ -196,29 +196,32 @@ pub struct TitleBlock {
     pub size: f64,
 }
 
-/// Auto-fit and render the title. `anchor_y` is the first baseline when
-/// `bottom_anchored` is false, otherwise the last baseline.
+/// Auto-fit and render the title into a `max_width` × `max_height` box.
+/// `anchor_y` is the first baseline when `bottom_anchored` is false, otherwise
+/// the last baseline.
 #[allow(clippy::too_many_arguments)]
 pub fn title_block(
     ctx: &Ctx,
     x: f64,
     anchor_y: f64,
     max_width: f64,
+    max_height: f64,
     max_size: f64,
     min_size: f64,
-    max_lines: usize,
     align: Anchor,
     bottom_anchored: bool,
 ) -> TitleBlock {
-    let (size, lines) = ctx
-        .black
-        .fit(&ctx.cfg.title, max_width, max_size, min_size, max_lines);
-    let line_height = size * 1.06;
+    let (size, lines) =
+        ctx.black
+            .fit_box(&ctx.cfg.title, max_width, max_height, max_size, min_size);
+    let line_height = size * LINE_HEIGHT;
     let count = lines.len() as f64;
     let first_baseline = if bottom_anchored {
+        // `anchor_y` is the last baseline.
         anchor_y - (count - 1.0) * line_height
     } else {
-        anchor_y
+        // `anchor_y` is the cap-height top of the first line.
+        anchor_y + size * 0.74
     };
     let mut svg = String::new();
     for (index, line) in lines.iter().enumerate() {

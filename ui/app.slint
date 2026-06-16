@@ -76,6 +76,7 @@ export component AppWindow inherits Window {
     in property <[string]> patterns;
     in property <[string]> layouts;
     in property <[string]> sizes;
+    in property <[string]> formats;
     in property <[string]> presets;
 
     // Editable state.
@@ -87,6 +88,7 @@ export component AppWindow inherits Window {
     in-out property <int> theme-index;
     in-out property <int> pattern-index;
     in-out property <int> layout-index;
+    in-out property <int> format-index;
     in-out property <int> size-index;
     in-out property <float> grain-value;
     in-out property <float> pattern-value;
@@ -193,10 +195,16 @@ export component AppWindow inherits Window {
                             selected => { root.changed(); }
                         }
                         LabeledCombo {
-                            label: "Export size";
-                            options: root.sizes;
-                            index <=> root.size-index;
+                            label: "Format";
+                            options: root.formats;
+                            index <=> root.format-index;
+                            selected => { root.changed(); }
                         }
+                    }
+                    LabeledCombo {
+                        label: "Export size";
+                        options: root.sizes;
+                        index <=> root.size-index;
                     }
                     HorizontalBox {
                         padding: 0;

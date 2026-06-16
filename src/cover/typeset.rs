@@ -4,6 +4,10 @@
 
 use ttf_parser::Face;
 
+/// Baseline-to-baseline factor used both when fitting a title and when stacking
+/// its lines, so the two stay in sync.
+pub const LINE_HEIGHT: f64 = 1.06;
+
 #[derive(Clone, Copy, Debug)]
 pub enum Weight {
     Regular,
@@ -84,22 +88,23 @@ impl Font {
         lines
     }
 
-    /// Largest size (stepping down from `max_size`) whose wrap fits both
-    /// `max_width` and `max_lines`. Returns the chosen size and wrapped lines.
-    pub fn fit(
+    /// Largest size (stepping down from `max_size`) whose wrapped text fits both
+    /// `max_width` and `max_height`. Returns the chosen size and wrapped lines so
+    /// the title adapts to any aspect ratio (fewer/smaller lines when short).
+    pub fn fit_box(
         &self,
         text: &str,
         max_width: f64,
+        max_height: f64,
         max_size: f64,
         min_size: f64,
-        max_lines: usize,
     ) -> (f64, Vec<String>) {
         let mut size = max_size;
         while size > min_size {
             let lines = self.wrap(text, size, max_width);
-            if lines.len() <= max_lines
-                && lines.iter().all(|l| self.text_width(l, size) <= max_width)
-            {
+            let total_height = lines.len() as f64 * size * LINE_HEIGHT;
+            let fits_width = lines.iter().all(|l| self.text_width(l, size) <= max_width);
+            if fits_width && total_height <= max_height {
                 return (size, lines);
             }
             size -= 2.0;
@@ -129,10 +134,28 @@ mod tests {
     }
 
     #[test]
-    fn fit_respects_line_budget() {
+    fn fit_box_keeps_text_within_bounds() {
         let font = Font::new(Weight::Black);
-        let (size, lines) = font.fit("Design systems that scale", 800.0, 150.0, 48.0, 3);
-        assert!(lines.len() <= 3);
-        assert!((48.0..=150.0).contains(&size));
+        let (max_w, max_h) = (800.0, 360.0);
+        let (size, lines) = font.fit_box("Design systems that scale", max_w, max_h, 150.0, 40.0);
+        assert!((40.0..=150.0).contains(&size));
+        assert!(
+            lines
+                .iter()
+                .all(|line| font.text_width(line, size) <= max_w + 1.0)
+        );
+        // Height fits unless it had to fall back to the minimum size.
+        if size > 40.0 {
+            assert!(lines.len() as f64 * size * LINE_HEIGHT <= max_h + 0.5);
+        }
+    }
+
+    #[test]
+    fn shorter_box_picks_a_smaller_or_equal_size() {
+        let font = Font::new(Weight::Black);
+        let text = "The quiet art of refactoring legacy code";
+        let (tall, _) = font.fit_box(text, 900.0, 700.0, 150.0, 30.0);
+        let (short, _) = font.fit_box(text, 900.0, 240.0, 150.0, 30.0);
+        assert!(short <= tall);
     }
 }

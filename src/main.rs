@@ -9,6 +9,7 @@ use slint::{
 };
 
 use article_cover_art_generator::cover::config::CoverConfig;
+use article_cover_art_generator::cover::format::Format;
 use article_cover_art_generator::cover::layouts::Layout;
 use article_cover_art_generator::cover::render_cover_svg;
 use article_cover_art_generator::design::patterns::Pattern;
@@ -32,6 +33,10 @@ fn config_from_ui(ui: &AppWindow) -> CoverConfig {
         .get(ui.get_layout_index().max(0) as usize)
         .copied()
         .unwrap_or(Layout::Editorial);
+    let format = Format::ALL
+        .get(ui.get_format_index().max(0) as usize)
+        .copied()
+        .unwrap_or(Format::Square);
     CoverConfig {
         title: ui.get_title_text().to_string(),
         category: ui.get_category_text().to_string(),
@@ -41,6 +46,7 @@ fn config_from_ui(ui: &AppWindow) -> CoverConfig {
         theme,
         pattern,
         layout,
+        format,
         grain: f64::from(ui.get_grain_value()),
         pattern_strength: f64::from(ui.get_pattern_value()),
     }
@@ -55,6 +61,7 @@ fn apply_config(ui: &AppWindow, config: &CoverConfig) {
     ui.set_theme_index(config.theme.index() as i32);
     ui.set_pattern_index(config.pattern.index() as i32);
     ui.set_layout_index(config.layout.index() as i32);
+    ui.set_format_index(config.format.index() as i32);
     ui.set_grain_value(config.grain as f32);
     ui.set_pattern_value(config.pattern_strength as f32);
 }
@@ -107,6 +114,9 @@ fn main() -> Result<()> {
         Layout::ALL.iter().map(|l| l.label()).collect(),
     ));
     ui.set_sizes(string_model(vec!["2160 · 2K", "4096 · 4K"]));
+    ui.set_formats(string_model(
+        Format::ALL.iter().map(|f| f.label()).collect(),
+    ));
 
     let presets = Rc::new(VecModel::<SharedString>::default());
     ui.set_presets(presets.clone().into());
