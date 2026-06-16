@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="assets/icons/icon-256.png" width="120" alt="article-cover-art-generator icon" />
+  <img src="assets/icons/icon-256.png" width="120" alt="acag icon" />
 </p>
 
-<h1 align="center">article-cover-art-generator</h1>
+<h1 align="center">acag</h1>
+
+<p align="center"><em>article cover art generator</em></p>
 
 <p align="center">
   A native desktop app that generates <strong>1:1 article cover art</strong> in an
@@ -120,3 +122,7 @@ cargo run --example icon     # regenerate the app icon
 ## License
 
 [MIT](LICENSE).
+
+## The name
+
+**acag** is simply **a**rticle **c**over **a**rt **g**enerator.
