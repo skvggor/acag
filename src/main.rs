@@ -10,9 +10,10 @@ use article_cover_art_generator::cover::layouts::Layout;
 use article_cover_art_generator::cover::render_cover_svg;
 use article_cover_art_generator::design::patterns::Pattern;
 use article_cover_art_generator::design::themes::ThemeName;
-use article_cover_art_generator::{export, raster};
+use article_cover_art_generator::raster::{EXPORT_2K, EXPORT_4K};
+use article_cover_art_generator::{export, preset, raster};
 
-/// Preview is rasterized smaller than the 2160² export for snappy live updates.
+/// Preview is rasterized smaller than the export for snappy live updates.
 const PREVIEW_PIXELS: u32 = 768;
 
 fn config_from_ui(ui: &AppWindow) -> CoverConfig {
@@ -37,7 +38,29 @@ fn config_from_ui(ui: &AppWindow) -> CoverConfig {
         theme,
         pattern,
         layout,
-        grain: ui.get_grain_on(),
+        grain: f64::from(ui.get_grain_value()),
+        pattern_strength: f64::from(ui.get_pattern_value()),
+    }
+}
+
+fn apply_config(ui: &AppWindow, config: &CoverConfig) {
+    ui.set_title_text(config.title.clone().into());
+    ui.set_category_text(config.category.clone().into());
+    ui.set_date_text(config.date.clone().into());
+    ui.set_number_text(config.number.clone().into());
+    ui.set_brand_text(config.brand.clone().into());
+    ui.set_theme_index(config.theme.index() as i32);
+    ui.set_pattern_index(config.pattern.index() as i32);
+    ui.set_layout_index(config.layout.index() as i32);
+    ui.set_grain_value(config.grain as f32);
+    ui.set_pattern_value(config.pattern_strength as f32);
+}
+
+fn export_size(ui: &AppWindow) -> u32 {
+    if ui.get_size_index() == 0 {
+        EXPORT_2K
+    } else {
+        EXPORT_4K
     }
 }
 
@@ -53,7 +76,7 @@ fn refresh_preview(ui: &AppWindow) {
     }
 }
 
-fn string_model(items: Vec<&'static str>) -> ModelRc<SharedString> {
+fn string_model(items: Vec<&str>) -> ModelRc<SharedString> {
     Rc::new(VecModel::from(
         items
             .into_iter()
@@ -75,14 +98,11 @@ fn main() -> Result<()> {
     ui.set_layouts(string_model(
         Layout::ALL.iter().map(|l| l.label()).collect(),
     ));
+    ui.set_sizes(string_model(vec!["2160 · 2K", "4096 · 4K"]));
 
-    let defaults = CoverConfig::default();
-    ui.set_title_text(defaults.title.into());
-    ui.set_category_text(defaults.category.into());
-    ui.set_date_text(defaults.date.into());
-    ui.set_number_text(defaults.number.into());
-    ui.set_brand_text(defaults.brand.into());
-    ui.set_grain_on(defaults.grain);
+    apply_config(&ui, &CoverConfig::default());
+    ui.set_size_index(1); // 4K by default
+    ui.set_open_after(true);
 
     ui.on_changed({
         let handle = ui.as_weak();
@@ -97,10 +117,9 @@ fn main() -> Result<()> {
         let handle = ui.as_weak();
         move || {
             if let Some(ui) = handle.upgrade() {
-                ui.set_theme_index(fastrand::i32(0..ThemeName::ALL.len() as i32));
-                ui.set_pattern_index(fastrand::i32(0..Pattern::ALL.len() as i32));
-                ui.set_layout_index(fastrand::i32(0..Layout::ALL.len() as i32));
-                ui.set_grain_on(fastrand::bool());
+                let mut config = config_from_ui(&ui);
+                config.randomize_style();
+                apply_config(&ui, &config);
                 refresh_preview(&ui);
             }
         }
@@ -109,13 +128,30 @@ fn main() -> Result<()> {
     ui.on_export_png({
         let handle = ui.as_weak();
         move || {
-            if let Some(ui) = handle.upgrade() {
-                let status = match export::export_png(&config_from_ui(&ui)) {
-                    Ok(path) => format!("Saved PNG → {}", path.display()),
-                    Err(error) => format!("Export failed: {error}"),
+            let Some(ui) = handle.upgrade() else { return };
+            let config = config_from_ui(&ui);
+            let pixels = export_size(&ui);
+            let open = ui.get_open_after();
+            // Show the loader, then rasterize off the UI thread so it stays responsive.
+            ui.set_exporting(true);
+            ui.set_status(SharedString::new());
+            let weak = handle.clone();
+            std::thread::spawn(move || {
+                let (message, path) = match export::export_png(&config, pixels) {
+                    Ok(path) => (format!("Saved PNG → {}", path.display()), Some(path)),
+                    Err(error) => (format!("Export failed: {error}"), None),
                 };
-                ui.set_status(status.into());
-            }
+                slint::invoke_from_event_loop(move || {
+                    if let Some(ui) = weak.upgrade() {
+                        ui.set_exporting(false);
+                        ui.set_status(message.into());
+                        if open && let Some(path) = path {
+                            let _ = export::open_in_viewer(&path);
+                        }
+                    }
+                })
+                .ok();
+            });
         }
     });
 
@@ -128,6 +164,37 @@ fn main() -> Result<()> {
                     Err(error) => format!("Export failed: {error}"),
                 };
                 ui.set_status(status.into());
+            }
+        }
+    });
+
+    ui.on_save_preset({
+        let handle = ui.as_weak();
+        move || {
+            if let Some(ui) = handle.upgrade() {
+                let path = preset::default_path();
+                let status = match preset::save(&config_from_ui(&ui), &path) {
+                    Ok(()) => format!("Saved preset → {}", path.display()),
+                    Err(error) => format!("Save preset failed: {error}"),
+                };
+                ui.set_status(status.into());
+            }
+        }
+    });
+
+    ui.on_load_preset({
+        let handle = ui.as_weak();
+        move || {
+            if let Some(ui) = handle.upgrade() {
+                let path = preset::default_path();
+                match preset::load(&path) {
+                    Ok(config) => {
+                        apply_config(&ui, &config);
+                        refresh_preview(&ui);
+                        ui.set_status(format!("Loaded preset ← {}", path.display()).into());
+                    }
+                    Err(error) => ui.set_status(format!("Load preset failed: {error}").into()),
+                }
             }
         }
     });

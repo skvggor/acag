@@ -5,7 +5,9 @@
 
 use std::fmt::Write as _;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Pattern {
     Seigaiha,
     Shippo,
@@ -22,6 +24,11 @@ impl Pattern {
         Pattern::Yabane,
         Pattern::Asanoha,
     ];
+
+    /// Position in [`Pattern::ALL`], for syncing with UI combo boxes.
+    pub fn index(self) -> usize {
+        Self::ALL.iter().position(|&item| item == self).unwrap_or(0)
+    }
 
     /// Romanized label for the UI only — never drawn on the artwork.
     pub fn label(self) -> &'static str {
@@ -267,5 +274,12 @@ mod tests {
         labels.sort_unstable();
         labels.dedup();
         assert_eq!(labels.len(), Pattern::ALL.len());
+    }
+
+    #[test]
+    fn index_matches_position() {
+        for (position, pattern) in Pattern::ALL.iter().enumerate() {
+            assert_eq!(pattern.index(), position);
+        }
     }
 }

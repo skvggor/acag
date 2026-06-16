@@ -7,8 +7,12 @@
 <p align="center">
   A native desktop app that generates <strong>1:1 article cover art</strong> in an
   <strong>Omakase / Japanese-constructivist</strong> style — live preview, six themes,
-  five traditional patterns, three layouts, exported as a crisp <strong>2160² PNG</strong>
+  five traditional patterns, three layouts, exported up to <strong>4096² (4K) PNG</strong>
   (plus the source SVG).
+</p>
+
+<p align="center">
+  <img src="docs/screenshot.png" width="92%" alt="the article-cover-art-generator app: controls on the left, live preview on the right" />
 </p>
 
 <p align="center">
@@ -36,11 +40,13 @@ the sumi-ê palette) with [skvggor.dev](https://skvggor.dev) and
   (tortoiseshell) · `yabane` (arrow feathers) · `asanoha` (hemp leaf)
 - **3 layouts** — `editorial` (asymmetric), `bloco` (constructivist color block), `ma` (negative space)
 - **Live preview** — every control updates the square preview instantly
-- **Film grain** — optional fractal-noise overlay, shown in the preview and the export
+- **Adjustable film grain** and **pattern strength** sliders, shown live in the preview
 - **Omakase button** — randomizes the visual style and lets the house plate it for you
+- **Presets** — save/load the current look as TOML (`~/.config/article-cover-art-generator/`)
 - **WCAG AAA** — all readable text is forced to ≥ 7:1 contrast against its background
 - **Montserrat** Black / Bold / Regular, embedded in the binary (no system fonts needed)
-- **Export** — 2160×2160 PNG and the resolution-independent source SVG
+- **Export** — **2160² (2K)** or **4096² (4K)** PNG plus the resolution-independent source SVG,
+  with a non-blocking save (spinner while it rasterizes) and optional open-after-export
 - **Native** — Rust + [slint](https://slint.dev) + [resvg](https://github.com/linebender/resvg),
   running directly on Wayland (no web view, no Node)
 
@@ -75,9 +81,9 @@ It will then show up in the app launcher (walker/rofi). Run it from a terminal w
 
 1. Type a **title** (the only required field).
 2. Fill in optional **category / date / number / brand**.
-3. Pick a **theme**, **pattern** and **layout**; toggle **film grain**.
-4. Hit **Omakase** to shuffle the style, or set it by hand.
-5. **Export PNG** (2160²) or **Export SVG**.
+3. Pick a **theme**, **pattern** and **layout**; tune the **pattern strength** and **film grain** sliders.
+4. Hit **Omakase** to shuffle the style, or set it by hand; **Save / Load preset** to keep a look.
+5. Choose **2K or 4K**, then **Export PNG** or **Export SVG** (enable *Open after export* to view it).
 
 ## How it works
 
@@ -91,8 +97,9 @@ src/
   design/   themes · wagara patterns · WCAG contrast
   cover/    config · typesetting · render · layouts (editorial/bloco/ma)
   raster.rs SVG → Pixmap/PNG (resvg + embedded Montserrat)
-  export.rs save SVG / 2160² PNG
-  main.rs   slint GUI wiring
+  export.rs save SVG / PNG (2K or 4K)
+  preset.rs save/load a look as TOML
+  main.rs   slint GUI wiring (background export + spinner)
 ui/app.slint  the editor + live preview
 ```
 

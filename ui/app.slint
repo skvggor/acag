@@ -1,21 +1,24 @@
 import {
-    LineEdit, ComboBox, Button, CheckBox, VerticalBox, HorizontalBox, ScrollView,
+    LineEdit, ComboBox, Button, CheckBox, Slider, Spinner,
+    VerticalBox, HorizontalBox, ScrollView,
 } from "std-widgets.slint";
 
 export component AppWindow inherits Window {
     title: "article cover art generator";
     preferred-width: 1180px;
-    preferred-height: 840px;
+    preferred-height: 880px;
     min-width: 1000px;
-    min-height: 700px;
+    min-height: 720px;
     background: #15130f;
 
     // Set from Rust.
     in property <image> preview;
     in property <string> status;
+    in property <bool> exporting;
     in property <[string]> themes;
     in property <[string]> patterns;
     in property <[string]> layouts;
+    in property <[string]> sizes;
 
     // Editable state.
     in-out property <string> title-text;
@@ -26,12 +29,17 @@ export component AppWindow inherits Window {
     in-out property <int> theme-index;
     in-out property <int> pattern-index;
     in-out property <int> layout-index;
-    in-out property <bool> grain-on;
+    in-out property <int> size-index;
+    in-out property <float> grain-value;
+    in-out property <float> pattern-value;
+    in-out property <bool> open-after;
 
     callback changed();
     callback export-png();
     callback export-svg();
     callback omakase();
+    callback save-preset();
+    callback load-preset();
 
     HorizontalBox {
         padding: 22px;
@@ -47,7 +55,7 @@ export component AppWindow inherits Window {
                 VerticalBox {
                     width: 360px;
                     padding: 24px;
-                    spacing: 10px;
+                    spacing: 9px;
                     alignment: start;
 
                     Text {
@@ -119,17 +127,35 @@ export component AppWindow inherits Window {
                         selected => { root.changed(); }
                     }
 
+                    Text { text: "Pattern strength"; color: #d4c4a8; font-size: 11px; }
+                    Slider {
+                        minimum: 0;
+                        maximum: 1.0;
+                        value <=> root.pattern-value;
+                        changed(v) => { root.changed(); }
+                    }
+
+                    Text { text: "Film grain"; color: #d4c4a8; font-size: 11px; }
+                    Slider {
+                        minimum: 0;
+                        maximum: 1.0;
+                        value <=> root.grain-value;
+                        changed(v) => { root.changed(); }
+                    }
+
+                    Text { text: "Export size"; color: #d4c4a8; font-size: 11px; }
+                    ComboBox {
+                        model: root.sizes;
+                        current-index <=> root.size-index;
+                    }
                     CheckBox {
-                        text: "Film grain";
-                        checked <=> root.grain-on;
-                        toggled => { root.changed(); }
+                        text: "Open after export";
+                        checked <=> root.open-after;
                     }
 
                     HorizontalBox {
-                        padding-top: 8px;
-                        padding-left: 0px;
-                        padding-right: 0px;
-                        padding-bottom: 0px;
+                        padding: 0;
+                        padding-top: 6px;
                         spacing: 10px;
                         Button {
                             text: "Omakase";
@@ -138,19 +164,48 @@ export component AppWindow inherits Window {
                         Button {
                             text: "Export PNG";
                             primary: true;
+                            enabled: !root.exporting;
                             clicked => { root.export-png(); }
                         }
                     }
-                    Button {
-                        text: "Export SVG";
-                        clicked => { root.export-svg(); }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 10px;
+                        Button {
+                            text: "Export SVG";
+                            enabled: !root.exporting;
+                            clicked => { root.export-svg(); }
+                        }
+                    }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 10px;
+                        Button {
+                            text: "Save preset";
+                            clicked => { root.save-preset(); }
+                        }
+                        Button {
+                            text: "Load preset";
+                            clicked => { root.load-preset(); }
+                        }
                     }
 
-                    Text {
-                        text: root.status;
-                        color: #8a7e6a;
-                        font-size: 11px;
-                        wrap: word-wrap;
+                    HorizontalBox {
+                        padding: 0;
+                        padding-top: 4px;
+                        spacing: 8px;
+                        if root.exporting: Spinner {
+                            indeterminate: true;
+                            width: 18px;
+                            height: 18px;
+                        }
+                        Text {
+                            text: root.exporting ? "Saving…" : root.status;
+                            color: #8a7e6a;
+                            font-size: 11px;
+                            wrap: word-wrap;
+                            vertical-alignment: center;
+                        }
                     }
                 }
             }

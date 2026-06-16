@@ -73,10 +73,11 @@ pub fn textured_panel(
 ) -> String {
     let scale = ctx.cfg.pattern.default_scale();
     let shapes = ctx.cfg.pattern.shapes(w, h, scale);
+    let opacity = opacity * ctx.cfg.pattern_strength;
     format!(
         "<clipPath id=\"{id}\"><rect x=\"{x:.1}\" y=\"{y:.1}\" width=\"{w:.1}\" height=\"{h:.1}\"/></clipPath>\
          <g clip-path=\"url(#{id})\"><g transform=\"translate({x:.1},{y:.1})\" fill=\"none\" \
-         stroke=\"{stroke}\" stroke-width=\"2\" opacity=\"{opacity}\">{shapes}</g></g>",
+         stroke=\"{stroke}\" stroke-width=\"2\" opacity=\"{opacity:.3}\">{shapes}</g></g>",
         stroke = color.to_hex(),
     )
 }
@@ -86,11 +87,12 @@ pub fn textured_panel(
 pub fn seal_roundel(ctx: &Ctx, cx: f64, cy: f64, r: f64, color: Rgb, opacity: f64) -> String {
     let scale = ctx.cfg.pattern.default_scale();
     let shapes = ctx.cfg.pattern.shapes(2.0 * r, 2.0 * r, scale);
+    let opacity = opacity * ctx.cfg.pattern_strength;
     let id = format!("seal-{}", cx as i64);
     format!(
         "<clipPath id=\"{id}\"><circle cx=\"{cx:.1}\" cy=\"{cy:.1}\" r=\"{r:.1}\"/></clipPath>\
          <g clip-path=\"url(#{id})\"><g transform=\"translate({x:.1},{y:.1})\" fill=\"none\" \
-         stroke=\"{stroke}\" stroke-width=\"3\" opacity=\"{opacity}\">{shapes}</g></g>",
+         stroke=\"{stroke}\" stroke-width=\"3\" opacity=\"{opacity:.3}\">{shapes}</g></g>",
         x = cx - r,
         y = cy - r,
         stroke = color.to_hex(),
@@ -162,10 +164,11 @@ pub fn divider(ctx: &Ctx, x: f64, y: f64, w: f64) -> String {
     )
 }
 
-/// Film-grain overlay: fractal noise desaturated to gray and laid faintly over
-/// the whole canvas. Uses resvg's `feTurbulence` / `feColorMatrix` support, so
-/// it shows identically in the preview and the exported PNG.
-pub fn grain_overlay(size: f64) -> String {
+/// Film-grain overlay: fractal noise desaturated to gray and laid over the whole
+/// canvas at `intensity` in `[0, 1]`. Uses resvg's `feTurbulence` /
+/// `feColorMatrix` support, so it shows identically in preview and export.
+pub fn grain_overlay(size: f64, intensity: f64) -> String {
+    let opacity = intensity.clamp(0.0, 1.0) * 0.22;
     format!(
         "<filter id=\"grain\" x=\"0\" y=\"0\" width=\"100%\" height=\"100%\" \
          color-interpolation-filters=\"sRGB\">\
@@ -173,7 +176,7 @@ pub fn grain_overlay(size: f64) -> String {
          stitchTiles=\"stitch\"/>\
          <feColorMatrix type=\"saturate\" values=\"0\"/>\
          </filter>\
-         <rect width=\"{size:.0}\" height=\"{size:.0}\" filter=\"url(#grain)\" opacity=\"0.13\"/>"
+         <rect width=\"{size:.0}\" height=\"{size:.0}\" filter=\"url(#grain)\" opacity=\"{opacity:.3}\"/>"
     )
 }
 

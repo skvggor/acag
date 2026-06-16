@@ -38,8 +38,8 @@ pub fn render_cover_svg(cfg: &CoverConfig) -> String {
         Layout::Bloco => bloco::render(&ctx),
         Layout::Ma => ma::render(&ctx),
     };
-    let grain = if cfg.grain {
-        grain_overlay(CANVAS)
+    let grain = if cfg.grain > 0.0 {
+        grain_overlay(CANVAS, cfg.grain)
     } else {
         String::new()
     };

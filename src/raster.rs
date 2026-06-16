@@ -14,8 +14,11 @@ const FONT_REGULAR: &[u8] = include_bytes!("../assets/fonts/Montserrat-Regular.t
 const FONT_BOLD: &[u8] = include_bytes!("../assets/fonts/Montserrat-Bold.ttf");
 const FONT_BLACK: &[u8] = include_bytes!("../assets/fonts/Montserrat-Black.ttf");
 
-/// Default pixel size for the exported PNG.
-pub const EXPORT_PIXELS: u32 = 2160;
+/// Export sizes offered in the UI (square, in pixels).
+pub const EXPORT_2K: u32 = 2160;
+pub const EXPORT_4K: u32 = 4096;
+/// Default export size.
+pub const EXPORT_PIXELS: u32 = EXPORT_4K;
 
 fn shared_fontdb() -> Arc<fontdb::Database> {
     static DB: OnceLock<Arc<fontdb::Database>> = OnceLock::new();

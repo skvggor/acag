@@ -2,9 +2,11 @@
 //! Each one is a "poster" variant (saturated background) chosen so that the main
 //! text already clears WCAG AAA (7:1) against the background.
 
+use serde::{Deserialize, Serialize};
+
 use crate::design::contrast::Rgb;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ThemeName {
     Terracotta,
     Sumi,
@@ -23,6 +25,11 @@ impl ThemeName {
         ThemeName::Ai,
         ThemeName::Sakura,
     ];
+
+    /// Position in [`ThemeName::ALL`], for syncing with UI combo boxes.
+    pub fn index(self) -> usize {
+        Self::ALL.iter().position(|&item| item == self).unwrap_or(0)
+    }
 
     /// Romanized label for the UI only — never drawn on the artwork.
     pub fn label(self) -> &'static str {
@@ -107,5 +114,12 @@ mod tests {
         labels.sort_unstable();
         labels.dedup();
         assert_eq!(labels.len(), ThemeName::ALL.len());
+    }
+
+    #[test]
+    fn index_matches_position() {
+        for (position, theme) in ThemeName::ALL.iter().enumerate() {
+            assert_eq!(theme.index(), position);
+        }
     }
 }

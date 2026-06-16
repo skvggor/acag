@@ -7,4 +7,5 @@
 pub mod cover;
 pub mod design;
 pub mod export;
+pub mod preset;
 pub mod raster;

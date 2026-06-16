@@ -2,11 +2,13 @@
 //! other text field is optional (empty = hidden), keeping the artwork generic
 //! and usable on any platform.
 
+use serde::{Deserialize, Serialize};
+
 use crate::cover::layouts::Layout;
 use crate::design::patterns::Pattern;
 use crate::design::themes::ThemeName;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CoverConfig {
     pub title: String,
     pub category: String,
@@ -16,8 +18,10 @@ pub struct CoverConfig {
     pub theme: ThemeName,
     pub pattern: Pattern,
     pub layout: Layout,
-    /// Film-grain overlay toggle.
-    pub grain: bool,
+    /// Film-grain intensity in `[0, 1]` (0 = off).
+    pub grain: f64,
+    /// Multiplier in `[0, 1]` for the wagara texture and seal opacity (0 = hidden).
+    pub pattern_strength: f64,
 }
 
 impl Default for CoverConfig {
@@ -31,7 +35,8 @@ impl Default for CoverConfig {
             theme: ThemeName::Terracotta,
             pattern: Pattern::Seigaiha,
             layout: Layout::Editorial,
-            grain: false,
+            grain: 0.0,
+            pattern_strength: 1.0,
         }
     }
 }
@@ -43,7 +48,11 @@ impl CoverConfig {
         self.theme = *fastrand::choice(ThemeName::ALL.iter()).expect("non-empty");
         self.pattern = *fastrand::choice(Pattern::ALL.iter()).expect("non-empty");
         self.layout = *fastrand::choice(Layout::ALL.iter()).expect("non-empty");
-        self.grain = fastrand::bool();
+        self.grain = if fastrand::bool() {
+            0.18 + fastrand::f64() * 0.22
+        } else {
+            0.0
+        };
     }
 }
 

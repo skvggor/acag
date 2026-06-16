@@ -3,11 +3,12 @@
 //! the title, never overwriting an existing file.
 
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use anyhow::{Context, Result};
 
 use crate::cover::{CoverConfig, render_cover_svg};
-use crate::raster::{EXPORT_PIXELS, png_bytes};
+use crate::raster::png_bytes;
 
 #[derive(Clone, Copy)]
 enum Format {
@@ -66,11 +67,11 @@ fn unique_path(dir: &Path, stem: &str, extension: &str) -> PathBuf {
     candidate
 }
 
-fn write_cover(dir: &Path, config: &CoverConfig, format: Format) -> Result<PathBuf> {
+fn write_cover(dir: &Path, config: &CoverConfig, format: Format, pixels: u32) -> Result<PathBuf> {
     std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
     let bytes = match format {
         Format::Svg => render_cover_svg(config).into_bytes(),
-        Format::Png => png_bytes(&render_cover_svg(config), EXPORT_PIXELS)?,
+        Format::Png => png_bytes(&render_cover_svg(config), pixels)?,
     };
     let path = unique_path(dir, &slug(&config.title), format.extension());
     std::fs::write(&path, bytes).with_context(|| format!("writing {}", path.display()))?;
@@ -79,12 +80,21 @@ fn write_cover(dir: &Path, config: &CoverConfig, format: Format) -> Result<PathB
 
 /// Write the cover as an SVG; returns the path written.
 pub fn export_svg(config: &CoverConfig) -> Result<PathBuf> {
-    write_cover(&output_dir(), config, Format::Svg)
+    write_cover(&output_dir(), config, Format::Svg, 0)
 }
 
-/// Write the cover as a 2160² PNG; returns the path written.
-pub fn export_png(config: &CoverConfig) -> Result<PathBuf> {
-    write_cover(&output_dir(), config, Format::Png)
+/// Write the cover as a square PNG of `pixels` per side; returns the path.
+pub fn export_png(config: &CoverConfig, pixels: u32) -> Result<PathBuf> {
+    write_cover(&output_dir(), config, Format::Png, pixels)
+}
+
+/// Open a file in the system image viewer (best effort; never blocks).
+pub fn open_in_viewer(path: &Path) -> Result<()> {
+    Command::new("xdg-open")
+        .arg(path)
+        .spawn()
+        .with_context(|| "launching the image viewer")?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -121,7 +131,7 @@ mod tests {
     fn write_cover_writes_svg() {
         let dir = temp_dir("svg");
         let config = CoverConfig::default();
-        let path = write_cover(&dir, &config, Format::Svg).unwrap();
+        let path = write_cover(&dir, &config, Format::Svg, 0).unwrap();
         assert_eq!(path.extension().unwrap(), "svg");
         let contents = std::fs::read_to_string(&path).unwrap();
         assert!(contents.starts_with("<svg"));
@@ -132,8 +142,8 @@ mod tests {
     fn write_cover_writes_png_and_avoids_overwrite() {
         let dir = temp_dir("png");
         let config = CoverConfig::default();
-        let first = write_cover(&dir, &config, Format::Png).unwrap();
-        let second = write_cover(&dir, &config, Format::Png).unwrap();
+        let first = write_cover(&dir, &config, Format::Png, 256).unwrap();
+        let second = write_cover(&dir, &config, Format::Png, 256).unwrap();
         assert_ne!(first, second);
         let bytes = std::fs::read(&first).unwrap();
         assert!(bytes.starts_with(&[0x89, b'P', b'N', b'G']));
@@ -148,10 +158,21 @@ mod tests {
         assert_eq!(output_dir(), dir);
         let config = CoverConfig::default();
         let svg = export_svg(&config).unwrap();
-        let png = export_png(&config).unwrap();
+        let png = export_png(&config, 256).unwrap();
         assert!(svg.starts_with(&dir) && svg.extension().unwrap() == "svg");
         assert!(png.starts_with(&dir) && png.extension().unwrap() == "png");
         unsafe { std::env::remove_var("ACAG_OUTPUT_DIR") };
         std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn write_cover_errors_when_directory_is_unusable() {
+        // A regular file in the path makes `create_dir_all` fail.
+        let blocker = temp_dir("blocker");
+        std::fs::write(&blocker, b"x").unwrap();
+        let unusable = blocker.join("nested");
+        let result = write_cover(&unusable, &CoverConfig::default(), Format::Svg, 0);
+        assert!(result.is_err());
+        std::fs::remove_file(&blocker).ok();
     }
 }
