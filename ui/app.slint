@@ -1,0 +1,174 @@
+import {
+    LineEdit, ComboBox, Button, CheckBox, VerticalBox, HorizontalBox, ScrollView,
+} from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    title: "article cover art generator";
+    preferred-width: 1180px;
+    preferred-height: 840px;
+    min-width: 1000px;
+    min-height: 700px;
+    background: #15130f;
+
+    // Set from Rust.
+    in property <image> preview;
+    in property <string> status;
+    in property <[string]> themes;
+    in property <[string]> patterns;
+    in property <[string]> layouts;
+
+    // Editable state.
+    in-out property <string> title-text;
+    in-out property <string> category-text;
+    in-out property <string> date-text;
+    in-out property <string> number-text;
+    in-out property <string> brand-text;
+    in-out property <int> theme-index;
+    in-out property <int> pattern-index;
+    in-out property <int> layout-index;
+    in-out property <bool> grain-on;
+
+    callback changed();
+    callback export-png();
+    callback export-svg();
+    callback omakase();
+
+    HorizontalBox {
+        padding: 22px;
+        spacing: 22px;
+
+        // ---- Controls ----
+        Rectangle {
+            width: 360px;
+            background: #1c1a17;
+            border-radius: 10px;
+
+            ScrollView {
+                VerticalBox {
+                    width: 360px;
+                    padding: 24px;
+                    spacing: 10px;
+                    alignment: start;
+
+                    Text {
+                        text: "ARTICLE COVER ART";
+                        color: #d89868;
+                        font-size: 13px;
+                        font-weight: 800;
+                        letter-spacing: 2px;
+                    }
+                    Text {
+                        text: "Omakase · square 1:1";
+                        color: #8a7e6a;
+                        font-size: 12px;
+                    }
+
+                    Text { text: "Title"; color: #d4c4a8; font-size: 11px; }
+                    LineEdit {
+                        text <=> root.title-text;
+                        placeholder-text: "Article title";
+                        edited => { root.changed(); }
+                    }
+
+                    Text { text: "Category"; color: #d4c4a8; font-size: 11px; }
+                    LineEdit {
+                        text <=> root.category-text;
+                        placeholder-text: "optional";
+                        edited => { root.changed(); }
+                    }
+
+                    Text { text: "Date"; color: #d4c4a8; font-size: 11px; }
+                    LineEdit {
+                        text <=> root.date-text;
+                        placeholder-text: "optional";
+                        edited => { root.changed(); }
+                    }
+
+                    Text { text: "Number"; color: #d4c4a8; font-size: 11px; }
+                    LineEdit {
+                        text <=> root.number-text;
+                        placeholder-text: "optional";
+                        edited => { root.changed(); }
+                    }
+
+                    Text { text: "Brand"; color: #d4c4a8; font-size: 11px; }
+                    LineEdit {
+                        text <=> root.brand-text;
+                        placeholder-text: "optional";
+                        edited => { root.changed(); }
+                    }
+
+                    Text { text: "Theme"; color: #d4c4a8; font-size: 11px; }
+                    ComboBox {
+                        model: root.themes;
+                        current-index <=> root.theme-index;
+                        selected => { root.changed(); }
+                    }
+
+                    Text { text: "Pattern"; color: #d4c4a8; font-size: 11px; }
+                    ComboBox {
+                        model: root.patterns;
+                        current-index <=> root.pattern-index;
+                        selected => { root.changed(); }
+                    }
+
+                    Text { text: "Layout"; color: #d4c4a8; font-size: 11px; }
+                    ComboBox {
+                        model: root.layouts;
+                        current-index <=> root.layout-index;
+                        selected => { root.changed(); }
+                    }
+
+                    CheckBox {
+                        text: "Film grain";
+                        checked <=> root.grain-on;
+                        toggled => { root.changed(); }
+                    }
+
+                    HorizontalBox {
+                        padding-top: 8px;
+                        padding-left: 0px;
+                        padding-right: 0px;
+                        padding-bottom: 0px;
+                        spacing: 10px;
+                        Button {
+                            text: "Omakase";
+                            clicked => { root.omakase(); }
+                        }
+                        Button {
+                            text: "Export PNG";
+                            primary: true;
+                            clicked => { root.export-png(); }
+                        }
+                    }
+                    Button {
+                        text: "Export SVG";
+                        clicked => { root.export-svg(); }
+                    }
+
+                    Text {
+                        text: root.status;
+                        color: #8a7e6a;
+                        font-size: 11px;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+
+        // ---- Preview ----
+        Rectangle {
+            background: #1c1a17;
+            border-radius: 10px;
+
+            Image {
+                source: root.preview;
+                image-fit: contain;
+                x: 24px;
+                y: 24px;
+                width: parent.width - 48px;
+                height: parent.height - 48px;
+            }
+        }
+    }
+}

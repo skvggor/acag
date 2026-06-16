@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Article Cover Art
+GenericName=Cover Art Generator
+Comment=Generate 1:1 article cover art in an Omakase style
+Exec=acag
+Icon=article-cover-art-generator
+Terminal=false
+Categories=Graphics;2DGraphics;Design;
+Keywords=cover;art;svg;png;article;generator;omakase;
+StartupNotify=true
