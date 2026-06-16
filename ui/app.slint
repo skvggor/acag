@@ -3,12 +3,69 @@ import {
     VerticalBox, HorizontalBox, ScrollView,
 } from "std-widgets.slint";
 
+component FieldLabel inherits Text {
+    color: #d4c4a8;
+    font-size: 11px;
+}
+
+// A label stacked over a control; two of these sit side by side in a row.
+component LabeledEdit {
+    in property <string> label;
+    in property <string> placeholder: "optional";
+    in-out property <string> value;
+    callback edited();
+    VerticalBox {
+        padding: 0;
+        spacing: 4px;
+        FieldLabel { text: root.label; }
+        LineEdit {
+            text <=> root.value;
+            placeholder-text: root.placeholder;
+            edited => { root.edited(); }
+        }
+    }
+}
+
+component LabeledCombo {
+    in property <string> label;
+    in property <[string]> options;
+    in-out property <int> index;
+    callback selected();
+    VerticalBox {
+        padding: 0;
+        spacing: 4px;
+        FieldLabel { text: root.label; }
+        ComboBox {
+            model: root.options;
+            current-index <=> root.index;
+            selected => { root.selected(); }
+        }
+    }
+}
+
+component LabeledSlider {
+    in property <string> label;
+    in-out property <float> value;
+    callback changed();
+    VerticalBox {
+        padding: 0;
+        spacing: 4px;
+        FieldLabel { text: root.label; }
+        Slider {
+            minimum: 0;
+            maximum: 1.0;
+            value <=> root.value;
+            changed(v) => { root.changed(); }
+        }
+    }
+}
+
 export component AppWindow inherits Window {
     title: "article cover art generator";
     preferred-width: 1180px;
-    preferred-height: 880px;
+    preferred-height: 840px;
     min-width: 1000px;
-    min-height: 720px;
+    min-height: 680px;
     background: #15130f;
 
     // Set from Rust.
@@ -47,15 +104,15 @@ export component AppWindow inherits Window {
 
         // ---- Controls ----
         Rectangle {
-            width: 360px;
+            width: 392px;
             background: #1c1a17;
             border-radius: 10px;
 
             ScrollView {
                 VerticalBox {
-                    width: 360px;
+                    width: 392px;
                     padding: 24px;
-                    spacing: 9px;
+                    spacing: 12px;
                     alignment: start;
 
                     Text {
@@ -71,83 +128,87 @@ export component AppWindow inherits Window {
                         font-size: 12px;
                     }
 
-                    Text { text: "Title"; color: #d4c4a8; font-size: 11px; }
-                    LineEdit {
-                        text <=> root.title-text;
-                        placeholder-text: "Article title";
+                    LabeledEdit {
+                        label: "Title";
+                        placeholder: "Article title";
+                        value <=> root.title-text;
                         edited => { root.changed(); }
                     }
 
-                    Text { text: "Category"; color: #d4c4a8; font-size: 11px; }
-                    LineEdit {
-                        text <=> root.category-text;
-                        placeholder-text: "optional";
-                        edited => { root.changed(); }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 12px;
+                        LabeledEdit {
+                            label: "Category";
+                            value <=> root.category-text;
+                            edited => { root.changed(); }
+                        }
+                        LabeledEdit {
+                            label: "Date";
+                            value <=> root.date-text;
+                            edited => { root.changed(); }
+                        }
+                    }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 12px;
+                        LabeledEdit {
+                            label: "Number";
+                            value <=> root.number-text;
+                            edited => { root.changed(); }
+                        }
+                        LabeledEdit {
+                            label: "Brand";
+                            value <=> root.brand-text;
+                            edited => { root.changed(); }
+                        }
+                    }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 12px;
+                        LabeledCombo {
+                            label: "Theme";
+                            options: root.themes;
+                            index <=> root.theme-index;
+                            selected => { root.changed(); }
+                        }
+                        LabeledCombo {
+                            label: "Pattern";
+                            options: root.patterns;
+                            index <=> root.pattern-index;
+                            selected => { root.changed(); }
+                        }
+                    }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 12px;
+                        LabeledCombo {
+                            label: "Layout";
+                            options: root.layouts;
+                            index <=> root.layout-index;
+                            selected => { root.changed(); }
+                        }
+                        LabeledCombo {
+                            label: "Export size";
+                            options: root.sizes;
+                            index <=> root.size-index;
+                        }
+                    }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 12px;
+                        LabeledSlider {
+                            label: "Pattern strength";
+                            value <=> root.pattern-value;
+                            changed => { root.changed(); }
+                        }
+                        LabeledSlider {
+                            label: "Film grain";
+                            value <=> root.grain-value;
+                            changed => { root.changed(); }
+                        }
                     }
 
-                    Text { text: "Date"; color: #d4c4a8; font-size: 11px; }
-                    LineEdit {
-                        text <=> root.date-text;
-                        placeholder-text: "optional";
-                        edited => { root.changed(); }
-                    }
-
-                    Text { text: "Number"; color: #d4c4a8; font-size: 11px; }
-                    LineEdit {
-                        text <=> root.number-text;
-                        placeholder-text: "optional";
-                        edited => { root.changed(); }
-                    }
-
-                    Text { text: "Brand"; color: #d4c4a8; font-size: 11px; }
-                    LineEdit {
-                        text <=> root.brand-text;
-                        placeholder-text: "optional";
-                        edited => { root.changed(); }
-                    }
-
-                    Text { text: "Theme"; color: #d4c4a8; font-size: 11px; }
-                    ComboBox {
-                        model: root.themes;
-                        current-index <=> root.theme-index;
-                        selected => { root.changed(); }
-                    }
-
-                    Text { text: "Pattern"; color: #d4c4a8; font-size: 11px; }
-                    ComboBox {
-                        model: root.patterns;
-                        current-index <=> root.pattern-index;
-                        selected => { root.changed(); }
-                    }
-
-                    Text { text: "Layout"; color: #d4c4a8; font-size: 11px; }
-                    ComboBox {
-                        model: root.layouts;
-                        current-index <=> root.layout-index;
-                        selected => { root.changed(); }
-                    }
-
-                    Text { text: "Pattern strength"; color: #d4c4a8; font-size: 11px; }
-                    Slider {
-                        minimum: 0;
-                        maximum: 1.0;
-                        value <=> root.pattern-value;
-                        changed(v) => { root.changed(); }
-                    }
-
-                    Text { text: "Film grain"; color: #d4c4a8; font-size: 11px; }
-                    Slider {
-                        minimum: 0;
-                        maximum: 1.0;
-                        value <=> root.grain-value;
-                        changed(v) => { root.changed(); }
-                    }
-
-                    Text { text: "Export size"; color: #d4c4a8; font-size: 11px; }
-                    ComboBox {
-                        model: root.sizes;
-                        current-index <=> root.size-index;
-                    }
                     CheckBox {
                         text: "Open after export";
                         checked <=> root.open-after;
@@ -176,10 +237,6 @@ export component AppWindow inherits Window {
                             enabled: !root.exporting;
                             clicked => { root.export-svg(); }
                         }
-                    }
-                    HorizontalBox {
-                        padding: 0;
-                        spacing: 10px;
                         Button {
                             text: "Save preset";
                             clicked => { root.save-preset(); }
