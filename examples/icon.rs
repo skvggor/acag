@@ -71,6 +71,17 @@ fn main() -> anyhow::Result<()> {
         )?;
         println!("wrote icon-{size}.png");
     }
+
+    // Multi-resolution .ico embedded into the Windows .exe (see build.rs).
+    let mut ico = ico::IconDir::new(ico::ResourceType::Icon);
+    for size in [256u32, 128, 64, 48, 32, 16] {
+        let png = raster::png_bytes(&svg, size)?;
+        let image = ico::IconImage::read_png(&png[..])?;
+        ico.add_entry(ico::IconDirEntry::encode(&image)?);
+    }
+    ico.write(fs::File::create(dir.join("icon.ico"))?)?;
+    println!("wrote icon.ico");
+
     println!("icons in {}", dir.display());
     Ok(())
 }
