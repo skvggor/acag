@@ -1,6 +1,7 @@
 //! Named presets: save the current look under a name and load any saved one
 //! later. Each preset is a TOML file in the presets directory
-//! (`~/.config/article-cover-art-generator/presets/`, override with
+//! (`~/.config/article-cover-art-generator/presets/` on Linux,
+//! `%APPDATA%\article-cover-art-generator\presets\` on Windows; override with
 //! `ACAG_PRESETS_DIR`).
 
 use std::path::{Path, PathBuf};
