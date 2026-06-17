@@ -54,7 +54,15 @@ jobs:
           # AppImage's own runtime needs FUSE; extract-and-run avoids it on CI.
           export APPIMAGE_EXTRACT_AND_RUN=1
 
-          # Icon basename must match Icon= in the .desktop file.
+          # Install every size into the hicolor theme under the name the
+          # .desktop expects, so the desktop integration scales crisply.
+          for size in 128 256 512; do
+            install -Dm644 "assets/icons/icon-${size}.png" \
+              "AppDir/usr/share/icons/hicolor/${size}x${size}/apps/article-cover-art-generator.png"
+          done
+
+          # Top-level icon (becomes the AppImage's .DirIcon); basename must match
+          # Icon= in the .desktop file.
           cp assets/icons/icon-256.png article-cover-art-generator.png
 
           # LDAI_OUTPUT is the plugin's own (non-deprecated) output-name var.
