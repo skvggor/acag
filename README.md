@@ -51,7 +51,7 @@ the sumi-ê palette) with [skvggor.dev](https://skvggor.dev) and
 - **Live preview** — every control updates the preview instantly
 - **Adjustable film grain** and **pattern strength** sliders, shown live in the preview
 - **Omakase button** — randomizes the visual style and lets the house plate it for you
-- **Named presets** — save any number of looks as TOML and load/delete any of them (`~/.config/article-cover-art-generator/presets/`)
+- **Named presets** — save any number of looks as TOML and load/delete any of them (`~/.config/article-cover-art-generator/presets/` on Linux, `%APPDATA%\article-cover-art-generator\presets\` on Windows)
 - **WCAG AAA** — all readable text is forced to ≥ 7:1 contrast against its background
 - **Montserrat** Black / Bold / Regular, embedded in the binary (no system fonts needed)
 - **Export** — **2K or 4K** (longest edge) PNG at each format's exact dimensions, plus the
@@ -63,15 +63,49 @@ the sumi-ê palette) with [skvggor.dev](https://skvggor.dev) and
 Only the **title** is required; category, date, number and brand are optional, keeping the
 cover generic enough for any platform (blog, dev.to, LinkedIn, X, OG image, thumbnail…).
 
-## Build & run
+## Download
 
-Requires a recent stable Rust toolchain.
+Prebuilt binaries are attached to each [GitHub release](https://github.com/skvggor/acag/releases) — no Rust toolchain or system dependencies required.
+
+- **Linux** — `acag-*-x86_64.AppImage` (self-contained: `chmod +x` and run), or `acag-*-linux-x86_64.tar.gz` (raw binary).
+- **Windows** — `acag-*-windows-x86_64.zip` (standalone `acag.exe`, no Visual C++ runtime needed).
+
+### Rendering backend
+
+By default the app uses Slint's **software (CPU) renderer**, so it runs everywhere —
+including headless VMs and RDP sessions without a usable OpenGL driver. For this
+form-plus-preview UI the difference is imperceptible. To opt into GPU rendering:
+
+```sh
+SLINT_BACKEND=winit-femtovg acag
+```
+
+## Build from source
+
+Requires a recent stable Rust toolchain. On Linux, Slint also needs a few system
+libraries for the windowing/build:
+
+```sh
+# Debian / Ubuntu
+sudo apt install build-essential pkg-config \
+  libxkbcommon-dev libwayland-dev wayland-protocols \
+  libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+  libfontconfig1-dev libgl1-mesa-dev
+```
+
+```sh
+# Arch Linux
+sudo pacman -S --needed base-devel \
+  libxkbcommon wayland wayland-protocols \
+  libxcb fontconfig mesa
+```
 
 ```sh
 cargo run --release
 ```
 
-Covers are saved to `~/Pictures/article-covers/` (named from the title). Set
+Covers are saved to `~/Pictures/article-covers/` on Linux and
+`%USERPROFILE%\Pictures\article-covers\` on Windows (named from the title). Set
 `ACAG_OUTPUT_DIR` to write them somewhere else.
 
 ### Install on Omarchy / Hyprland

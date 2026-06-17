@@ -1,3 +1,7 @@
+// Don't allocate a console window on Windows for the released GUI binary; keep
+// it in debug builds so logs/panics stay visible during development.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 slint::include_modules!();
 
 use std::rc::Rc;
@@ -101,7 +105,20 @@ fn reload_presets(model: &VecModel<SharedString>) {
     model.set_vec(names);
 }
 
+/// Default to Slint's CPU (software) renderer so the app runs everywhere,
+/// including machines without a usable OpenGL driver (headless VMs, RDP).
+/// For this form-plus-preview UI the cost is imperceptible. Users with working
+/// GPU drivers can opt into hardware rendering with `SLINT_BACKEND=winit-femtovg`.
+fn default_to_software_renderer() {
+    if std::env::var_os("SLINT_BACKEND").is_none() {
+        // Safe: set before any backend/window initialization, still single-threaded.
+        unsafe { std::env::set_var("SLINT_BACKEND", "winit-software") };
+    }
+}
+
 fn main() -> Result<()> {
+    default_to_software_renderer();
+
     let ui = AppWindow::new()?;
 
     ui.set_themes(string_model(

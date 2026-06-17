@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  linux:
+    name: Linux · AppImage + tarball
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install slint build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libxkbcommon-dev libwayland-dev wayland-protocols \
+            libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libfontconfig1-dev libgl1-mesa-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build release
+        run: cargo build --release --locked
+
+      - name: Tarball (raw binary)
+        run: |
+          mkdir -p dist
+          install -Dm755 target/release/acag stage/acag
+          install -Dm644 README.md stage/README.md
+          install -Dm644 LICENSE stage/LICENSE
+          tar -C stage -czf "dist/acag-${VERSION}-linux-x86_64.tar.gz" .
+        env:
+          VERSION: ${{ github.ref_name }}
+
+      - name: Build AppImage
+        run: |
+          curl -fsSL -o linuxdeploy.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy.AppImage
+
+          # AppImage's own runtime needs FUSE; extract-and-run avoids it on CI.
+          export APPIMAGE_EXTRACT_AND_RUN=1
+
+          # Install every size into the hicolor theme under the name the
+          # .desktop expects, so the desktop integration scales crisply.
+          for size in 128 256 512; do
+            install -Dm644 "assets/icons/icon-${size}.png" \
+              "AppDir/usr/share/icons/hicolor/${size}x${size}/apps/article-cover-art-generator.png"
+          done
+
+          # Top-level icon (becomes the AppImage's .DirIcon); basename must match
+          # Icon= in the .desktop file.
+          cp assets/icons/icon-256.png article-cover-art-generator.png
+
+          # LDAI_OUTPUT is the plugin's own (non-deprecated) output-name var.
+          export LDAI_OUTPUT="acag-${TAG}-x86_64.AppImage"
+          ./linuxdeploy.AppImage \
+            --appdir AppDir \
+            -e target/release/acag \
+            -d assets/article-cover-art-generator.desktop \
+            -i article-cover-art-generator.png \
+            --output appimage
+
+          mv "${LDAI_OUTPUT}" dist/
+        env:
+          TAG: ${{ github.ref_name }}
+
+      - name: Publish to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+
+  windows:
+    name: Windows · standalone .exe
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build release (static CRT)
+        run: cargo build --release --locked
+        env:
+          # Statically link the MSVC runtime so the .exe runs without vcredist.
+          RUSTFLAGS: "-C target-feature=+crt-static"
+
+      - name: Zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist, stage | Out-Null
+          Copy-Item target/release/acag.exe stage/
+          Copy-Item README.md stage/
+          Copy-Item LICENSE stage/
+          Compress-Archive -Path stage/* -DestinationPath "dist/acag-$env:VERSION-windows-x86_64.zip"
+        env:
+          VERSION: ${{ github.ref_name }}
+
+      - name: Publish to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
