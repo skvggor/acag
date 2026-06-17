@@ -1,3 +1,7 @@
+// Don't allocate a console window on Windows for the released GUI binary; keep
+// it in debug builds so logs/panics stay visible during development.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 slint::include_modules!();
 
 use std::rc::Rc;
