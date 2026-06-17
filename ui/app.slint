@@ -1,0 +1,323 @@
+import {
+    LineEdit, ComboBox, Button, CheckBox, Slider, Spinner,
+    VerticalBox, HorizontalBox, ScrollView,
+} from "std-widgets.slint";
+
+component FieldLabel inherits Text {
+    color: #d4c4a8;
+    font-size: 11px;
+}
+
+// A label stacked over a control; two of these sit side by side in a row.
+component LabeledEdit {
+    in property <string> label;
+    in property <string> placeholder: "optional";
+    in-out property <string> value;
+    callback edited();
+    VerticalBox {
+        padding: 0;
+        spacing: 4px;
+        FieldLabel { text: root.label; }
+        LineEdit {
+            text <=> root.value;
+            placeholder-text: root.placeholder;
+            edited => { root.edited(); }
+        }
+    }
+}
+
+component LabeledCombo {
+    in property <string> label;
+    in property <[string]> options;
+    in-out property <int> index;
+    callback selected();
+    VerticalBox {
+        padding: 0;
+        spacing: 4px;
+        FieldLabel { text: root.label; }
+        ComboBox {
+            model: root.options;
+            current-index <=> root.index;
+            selected => { root.selected(); }
+        }
+    }
+}
+
+component LabeledSlider {
+    in property <string> label;
+    in-out property <float> value;
+    callback changed();
+    VerticalBox {
+        padding: 0;
+        spacing: 4px;
+        FieldLabel { text: root.label; }
+        Slider {
+            minimum: 0;
+            maximum: 1.0;
+            value <=> root.value;
+            changed(v) => { root.changed(); }
+        }
+    }
+}
+
+export component AppWindow inherits Window {
+    title: "acag";
+    preferred-width: 1180px;
+    preferred-height: 840px;
+    min-width: 1000px;
+    min-height: 680px;
+    background: #15130f;
+
+    // Set from Rust.
+    in property <image> preview;
+    in property <string> status;
+    in property <bool> exporting;
+    in property <[string]> themes;
+    in property <[string]> patterns;
+    in property <[string]> layouts;
+    in property <[string]> sizes;
+    in property <[string]> formats;
+    in property <[string]> presets;
+
+    // Editable state.
+    in-out property <string> title-text;
+    in-out property <string> category-text;
+    in-out property <string> date-text;
+    in-out property <string> number-text;
+    in-out property <string> brand-text;
+    in-out property <int> theme-index;
+    in-out property <int> pattern-index;
+    in-out property <int> layout-index;
+    in-out property <int> format-index;
+    in-out property <int> size-index;
+    in-out property <float> grain-value;
+    in-out property <float> pattern-value;
+    in-out property <bool> open-after;
+    in-out property <string> preset-name;
+    in-out property <int> preset-index;
+
+    callback changed();
+    callback export-png();
+    callback export-svg();
+    callback omakase();
+    callback save-preset();
+    callback load-preset();
+    callback delete-preset();
+
+    HorizontalBox {
+        padding: 22px;
+        spacing: 22px;
+
+        // ---- Controls ----
+        Rectangle {
+            width: 392px;
+            background: #1c1a17;
+            border-radius: 10px;
+
+            ScrollView {
+                VerticalBox {
+                    width: 392px;
+                    padding: 24px;
+                    spacing: 12px;
+                    alignment: start;
+
+                    Text {
+                        text: "acag";
+                        color: #d89868;
+                        font-size: 20px;
+                        font-weight: 800;
+                        letter-spacing: 1px;
+                    }
+                    Text {
+                        text: "article cover art · Omakase 1:1";
+                        color: #8a7e6a;
+                        font-size: 12px;
+                    }
+
+                    LabeledEdit {
+                        label: "Title";
+                        placeholder: "Article title";
+                        value <=> root.title-text;
+                        edited => { root.changed(); }
+                    }
+
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 12px;
+                        LabeledEdit {
+                            label: "Category";
+                            value <=> root.category-text;
+                            edited => { root.changed(); }
+                        }
+                        LabeledEdit {
+                            label: "Date";
+                            value <=> root.date-text;
+                            edited => { root.changed(); }
+                        }
+                    }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 12px;
+                        LabeledEdit {
+                            label: "Number";
+                            value <=> root.number-text;
+                            edited => { root.changed(); }
+                        }
+                        LabeledEdit {
+                            label: "Brand";
+                            value <=> root.brand-text;
+                            edited => { root.changed(); }
+                        }
+                    }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 12px;
+                        LabeledCombo {
+                            label: "Theme";
+                            options: root.themes;
+                            index <=> root.theme-index;
+                            selected => { root.changed(); }
+                        }
+                        LabeledCombo {
+                            label: "Pattern";
+                            options: root.patterns;
+                            index <=> root.pattern-index;
+                            selected => { root.changed(); }
+                        }
+                    }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 12px;
+                        LabeledCombo {
+                            label: "Layout";
+                            options: root.layouts;
+                            index <=> root.layout-index;
+                            selected => { root.changed(); }
+                        }
+                        LabeledCombo {
+                            label: "Format";
+                            options: root.formats;
+                            index <=> root.format-index;
+                            selected => { root.changed(); }
+                        }
+                    }
+                    LabeledCombo {
+                        label: "Export size";
+                        options: root.sizes;
+                        index <=> root.size-index;
+                    }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 12px;
+                        LabeledSlider {
+                            label: "Pattern strength";
+                            value <=> root.pattern-value;
+                            changed => { root.changed(); }
+                        }
+                        LabeledSlider {
+                            label: "Film grain";
+                            value <=> root.grain-value;
+                            changed => { root.changed(); }
+                        }
+                    }
+
+                    CheckBox {
+                        text: "Open after export";
+                        checked <=> root.open-after;
+                    }
+
+                    HorizontalBox {
+                        padding: 0;
+                        padding-top: 6px;
+                        spacing: 10px;
+                        Button {
+                            text: "Omakase";
+                            clicked => { root.omakase(); }
+                        }
+                        Button {
+                            text: "Export PNG";
+                            primary: true;
+                            enabled: !root.exporting;
+                            clicked => { root.export-png(); }
+                        }
+                        Button {
+                            text: "Export SVG";
+                            enabled: !root.exporting;
+                            clicked => { root.export-svg(); }
+                        }
+                    }
+
+                    FieldLabel {
+                        text: "PRESETS";
+                        color: #d89868;
+                        font-weight: 800;
+                        letter-spacing: 1px;
+                    }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 12px;
+                        LabeledEdit {
+                            label: "Save as";
+                            placeholder: "preset name";
+                            value <=> root.preset-name;
+                        }
+                        LabeledCombo {
+                            label: "Saved";
+                            options: root.presets;
+                            index <=> root.preset-index;
+                        }
+                    }
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 10px;
+                        Button {
+                            text: "Save";
+                            clicked => { root.save-preset(); }
+                        }
+                        Button {
+                            text: "Load";
+                            clicked => { root.load-preset(); }
+                        }
+                        Button {
+                            text: "Delete";
+                            clicked => { root.delete-preset(); }
+                        }
+                    }
+
+                    HorizontalBox {
+                        padding: 0;
+                        padding-top: 4px;
+                        spacing: 8px;
+                        if root.exporting: Spinner {
+                            indeterminate: true;
+                            width: 18px;
+                            height: 18px;
+                        }
+                        Text {
+                            text: root.exporting ? "Saving…" : root.status;
+                            color: #8a7e6a;
+                            font-size: 11px;
+                            wrap: word-wrap;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---- Preview ----
+        Rectangle {
+            background: #1c1a17;
+            border-radius: 10px;
+
+            Image {
+                source: root.preview;
+                image-fit: contain;
+                x: 24px;
+                y: 24px;
+                width: parent.width - 48px;
+                height: parent.height - 48px;
+            }
+        }
+    }
+}
