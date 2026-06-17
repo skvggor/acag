@@ -57,7 +57,8 @@ jobs:
           # Icon basename must match Icon= in the .desktop file.
           cp assets/icons/icon-256.png article-cover-art-generator.png
 
-          export OUTPUT="acag-${VERSION}-x86_64.AppImage"
+          # LDAI_OUTPUT is the plugin's own (non-deprecated) output-name var.
+          export LDAI_OUTPUT="acag-${TAG}-x86_64.AppImage"
           ./linuxdeploy.AppImage \
             --appdir AppDir \
             -e target/release/acag \
@@ -65,9 +66,9 @@ jobs:
             -i article-cover-art-generator.png \
             --output appimage
 
-          mv "${OUTPUT}" dist/
+          mv "${LDAI_OUTPUT}" dist/
         env:
-          VERSION: ${{ github.ref_name }}
+          TAG: ${{ github.ref_name }}
 
       - name: Publish to release
         uses: softprops/action-gh-release@v2
