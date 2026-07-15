@@ -1,4 +1,6 @@
 fn main() {
+    // Only the desktop app compiles the Slint UI; render-only and wasm builds skip it.
+    #[cfg(feature = "gui")]
     slint_build::compile("ui/app.slint").expect("failed to compile slint UI");
 
     // Embed the app icon as a Windows resource so the .exe shows it in Explorer

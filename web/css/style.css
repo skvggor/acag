@@ -1,0 +1,818 @@
+/* An omakase counter. The plate (the live cover) holds the stage on deep sumi
+   ink; the content sits on a washi menu card; a vermilion hanko signs it. The
+   whole sheet tints itself from the current cover's theme. */
+
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/Montserrat-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../assets/fonts/Montserrat-Bold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("../assets/fonts/Montserrat-Black.ttf") format("truetype");
+}
+
+/* Registered so the theme tint can interpolate on every omakase. */
+@property --tint {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #d89868;
+}
+
+@property --bg-tint {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #2d231b;
+}
+
+:root {
+  --bg: #161310; /* deep warm sumi ink */
+  --bg-tint: #2d231b; /* live: 12% of the theme's background over the ink */
+  --text: #f2ecdd; /* cream, ≈ 15:1 on the ink (AAA) */
+  --dim: #b5a996; /* ≈ 8:1 (AAA) */
+  --faint: #8d8271; /* ≈ 4.6:1, decorative */
+  --tint: #d89868; /* live: the current theme's background hue */
+  --vermilion: #c73e2d; /* the hanko — fixed, never themed */
+  --paper: #f2ecdd; /* the washi counter card */
+  --paper-ink: #241a12; /* ≈ 13:1 on paper (AAA) */
+  --sans: "Montserrat", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --display: var(--sans);
+  --kanji: "Noto Serif CJK JP", "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --margin: clamp(1.1rem, 3.4vw, 2.75rem);
+  --counter-w: min(23rem, 30vw);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--bg-tint);
+  color: var(--text);
+  font-family: var(--sans);
+  line-height: 1.55;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--tint);
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: 4px;
+}
+
+.counter :focus-visible,
+.downloads :focus-visible {
+  outline-color: var(--paper-ink);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100;
+  padding: 0.55rem 0.9rem;
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 700;
+  transform: translateY(-160%);
+  transition: transform 0.18s ease;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* ---- The sheet: wagara ground + film grain, both theme-tinted ---- */
+.ground,
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Seigaiha fans as an alpha mask, painted with the live tint. Same geometry as
+   the engine's pattern: overlapping upper semicircles in three concentric radii,
+   rows offset by half a period. */
+.ground {
+  background: var(--tint);
+  opacity: 0.05;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cpath fill='none' stroke='white' stroke-width='2' d='M-120,0%20A60,60%200%200%200%200,0%20M-100,0%20A40,40%200%200%200%20-20,0%20M-80,0%20A20,20%200%200%200%20-40,0%20M0,0%20A60,60%200%200%200%20120,0%20M20,0%20A40,40%200%200%200%20100,0%20M40,0%20A20,20%200%200%200%2080,0%20M120,0%20A60,60%200%200%200%20240,0%20M140,0%20A40,40%200%200%200%20220,0%20M160,0%20A20,20%200%200%200%20200,0%20M-60,60%20A60,60%200%200%200%2060,60%20M-40,60%20A40,40%200%200%200%2040,60%20M-20,60%20A20,20%200%200%200%2020,60%20M60,60%20A60,60%200%200%200%20180,60%20M80,60%20A40,40%200%200%200%20160,60%20M100,60%20A20,20%200%200%200%20140,60%20M-120,120%20A60,60%200%200%200%200,120%20M-100,120%20A40,40%200%200%200%20-20,120%20M-80,120%20A20,20%200%200%200%20-40,120%20M0,120%20A60,60%200%200%200%20120,120%20M20,120%20A40,40%200%200%200%20100,120%20M40,120%20A20,20%200%200%200%2080,120%20M120,120%20A60,60%200%200%200%20240,120%20M140,120%20A40,40%200%200%200%20220,120%20M160,120%20A20,20%200%200%200%20200,120'/%3E%3C/svg%3E");
+  mask-repeat: repeat;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cpath fill='none' stroke='white' stroke-width='2' d='M-120,0%20A60,60%200%200%200%200,0%20M-100,0%20A40,40%200%200%200%20-20,0%20M-80,0%20A20,20%200%200%200%20-40,0%20M0,0%20A60,60%200%200%200%20120,0%20M20,0%20A40,40%200%200%200%20100,0%20M40,0%20A20,20%200%200%200%2080,0%20M120,0%20A60,60%200%200%200%20240,0%20M140,0%20A40,40%200%200%200%20220,0%20M160,0%20A20,20%200%200%200%20200,0%20M-60,60%20A60,60%200%200%200%2060,60%20M-40,60%20A40,40%200%200%200%2040,60%20M-20,60%20A20,20%200%200%200%2020,60%20M60,60%20A60,60%200%200%200%20180,60%20M80,60%20A40,40%200%200%200%20160,60%20M100,60%20A20,20%200%200%200%20140,60%20M-120,120%20A60,60%200%200%200%200,120%20M-100,120%20A40,40%200%200%200%20-20,120%20M-80,120%20A20,20%200%200%200%20-40,120%20M0,120%20A60,60%200%200%200%20120,120%20M20,120%20A40,40%200%200%200%20100,120%20M40,120%20A20,20%200%200%200%2080,120%20M120,120%20A60,60%200%200%200%20240,120%20M140,120%20A40,40%200%200%200%20220,120%20M160,120%20A20,20%200%200%200%20200,120'/%3E%3C/svg%3E");
+  -webkit-mask-repeat: repeat;
+}
+
+.grain {
+  z-index: 1;
+  opacity: 0.09;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+}
+
+/* ---- Crop marks (the sheet is a print proof) ---- */
+.marks {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.mark {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  opacity: 0.5;
+}
+.mark::before,
+.mark::after {
+  content: "";
+  position: absolute;
+  background: var(--dim);
+}
+.mark::before {
+  inset: 6px 0 auto 0;
+  height: 1px;
+}
+.mark::after {
+  inset: 0 auto 0 6px;
+  width: 1px;
+}
+.mark--tl {
+  top: var(--margin);
+  left: var(--margin);
+}
+.mark--tr {
+  top: var(--margin);
+  right: var(--margin);
+}
+.mark--bl {
+  bottom: var(--margin);
+  left: var(--margin);
+}
+.mark--br {
+  bottom: var(--margin);
+  right: var(--margin);
+}
+
+/* ---- The stage: the plate and its proof slug ---- */
+.stage {
+  position: fixed;
+  z-index: 2;
+  top: calc(var(--margin) + 2.4rem);
+  bottom: calc(var(--margin) + 2rem);
+  left: var(--margin);
+  right: calc(var(--counter-w) + var(--margin) * 2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plate {
+  margin: 0;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.95rem;
+}
+
+/* The cover itself. JS drives the exact width/height per aspect ratio;
+   without JS the square poster stands in. */
+.plate__card {
+  position: relative;
+  display: block;
+  width: min(100%, 60vh, 34rem);
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  background: var(--tint);
+  cursor: pointer;
+  box-shadow:
+    0 26px 70px rgba(8, 6, 4, 0.55),
+    0 4px 18px rgba(8, 6, 4, 0.35);
+}
+
+.plate__poster,
+.plate__cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.plate__poster {
+  display: block;
+  object-fit: cover;
+}
+.plate__poster[hidden] {
+  display: none;
+}
+.plate__cover svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The proof slug: theme 赤土 · pattern · layout · ratio. */
+.plate__slug {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.plate__slug > span:not(:first-child)::before {
+  content: "·";
+  margin: 0 0.6em;
+  color: var(--faint);
+}
+.plate__slug [lang="ja"] {
+  font-family: var(--kanji);
+  letter-spacing: 0.1em;
+}
+
+/* ---- The counter card: a washi menu card, signed with a hanko ---- */
+.counter {
+  position: fixed;
+  z-index: 3;
+  top: 50%;
+  right: var(--margin);
+  width: var(--counter-w);
+  transform: translateY(-50%) rotate(-0.4deg);
+  padding: 2rem 1.7rem 2.2rem;
+  background: var(--paper);
+  color: var(--paper-ink);
+  box-shadow:
+    0 22px 55px rgba(8, 6, 4, 0.5),
+    0 3px 12px rgba(8, 6, 4, 0.3);
+}
+/* The kicker tick, echoing the one the engine draws on every cover. */
+.counter::before {
+  content: "";
+  position: absolute;
+  top: 1.1rem;
+  left: 1.7rem;
+  width: 56px;
+  height: 7px;
+  background: var(--vermilion);
+}
+/* The house seal, stamped slightly askew. */
+.counter::after {
+  content: "a";
+  position: absolute;
+  right: 0.95rem;
+  bottom: 0.9rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  display: grid;
+  place-items: center;
+  background: var(--vermilion);
+  color: var(--paper);
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 1.05rem;
+  line-height: 1;
+  border-radius: 3px;
+  transform: rotate(6deg);
+}
+
+.counter__statement {
+  margin: 1.1rem 0 0;
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: clamp(0.95rem, 1.3vw, 1.15rem);
+  line-height: 1.22;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.counter__statement > span {
+  white-space: nowrap;
+}
+
+.counter__detail {
+  margin: 0.55rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.6;
+  opacity: 0.78;
+  text-wrap: pretty;
+}
+
+.field {
+  display: block;
+  margin-top: 1.15rem;
+}
+.field__label {
+  display: block;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  opacity: 0.65;
+}
+.field__input {
+  width: 100%;
+  padding: 0.35rem 0;
+  border: 0;
+  border-bottom: 2px solid rgba(36, 26, 18, 0.35);
+  background: transparent;
+  color: var(--paper-ink);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  caret-color: var(--vermilion);
+}
+.field__input::placeholder {
+  color: rgba(36, 26, 18, 0.42);
+}
+.field__input:focus {
+  outline: none;
+  border-bottom-color: var(--vermilion);
+}
+
+/* Theme stamps: one mini palette per theme, built from the engine's catalog. */
+.themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.15rem;
+}
+.theme {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 2px solid rgba(36, 26, 18, 0.18);
+  border-radius: 50%;
+  font-family: var(--kanji);
+  font-size: 0.92rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.theme:hover,
+.theme:focus-visible {
+  transform: scale(1.1);
+}
+.theme[aria-pressed="true"] {
+  border-color: var(--vermilion);
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--vermilion);
+}
+
+/* Primary interaction: the hanko. Press it, the house decides. */
+.omakase {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 1.35rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--paper-ink);
+  font: inherit;
+  cursor: pointer;
+}
+.omakase__seal {
+  position: relative;
+  width: 3.2rem;
+  height: 3.2rem;
+  display: grid;
+  place-items: center;
+  background: var(--vermilion);
+  color: var(--paper);
+  border-radius: 50%;
+  font-family: var(--kanji);
+  font-size: 1.5rem;
+  line-height: 1;
+  box-shadow:
+    inset 0 0 0 2px rgba(242, 236, 221, 0.22),
+    0 3px 10px rgba(8, 6, 4, 0.3);
+  transition: transform 0.12s ease;
+}
+.omakase:hover .omakase__seal,
+.omakase:focus-visible .omakase__seal {
+  transform: scale(1.06);
+}
+.omakase:active .omakase__seal {
+  transform: scale(0.92);
+}
+.omakase__seal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--vermilion);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.omakase:hover .omakase__seal::after,
+.omakase:active .omakase__seal::after {
+  animation: seal-radiate 1.1s ease-out infinite;
+}
+@keyframes seal-radiate {
+  from {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+.omakase__label {
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 2px solid transparent;
+}
+.omakase:hover .omakase__label {
+  border-bottom-color: var(--vermilion);
+}
+
+.counter__hint {
+  margin: 1.05rem 0 0;
+  padding-right: 2.4rem; /* clears the house seal in the corner */
+  font-size: 0.62rem;
+  line-height: 1.5;
+  opacity: 0.68;
+  text-wrap: pretty;
+}
+.counter__hint [lang="ja"] {
+  font-family: var(--kanji);
+}
+
+/* ---- The stamp drawer: downloads ---- */
+.downloads-wrap {
+  position: fixed;
+  z-index: 4;
+  right: var(--margin);
+  bottom: calc(var(--margin) + 1.6rem);
+}
+
+.download-toggle {
+  padding: 0.6rem 1rem;
+  border: 1px solid rgba(242, 236, 221, 0.3);
+  background: rgba(22, 19, 16, 0.55);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.download-toggle:hover {
+  border-color: var(--tint);
+  color: var(--tint);
+}
+
+.downloads {
+  position: absolute;
+  bottom: calc(100% + 0.6rem);
+  right: 0;
+  width: 19.5rem;
+  display: grid;
+  gap: 0.15rem;
+  padding: 1.35rem 1.15rem 1.15rem;
+  background: var(--paper);
+  color: var(--paper-ink);
+  box-shadow: 0 22px 55px rgba(8, 6, 4, 0.5);
+}
+.downloads[hidden] {
+  display: none;
+}
+.downloads::before {
+  content: "";
+  position: absolute;
+  top: 0.65rem;
+  left: 1.15rem;
+  width: 40px;
+  height: 6px;
+  background: var(--vermilion);
+}
+
+/* While the drawer is open, one scrim veils everything behind it uniformly. */
+.downloads-open::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: rgba(12, 10, 8, 0.64);
+  animation: scrim-in 0.25s ease;
+}
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.downloads-open .downloads-wrap {
+  z-index: 6;
+}
+.download-toggle {
+  transition: opacity 0.25s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.downloads-open .download-toggle {
+  opacity: 0.25;
+}
+
+.downloads__close {
+  justify-self: end;
+  padding: 0.15rem 0.35rem;
+  border: 0;
+  background: none;
+  color: var(--paper-ink);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  opacity: 0.75;
+}
+.download__note {
+  display: none; /* desktop-only builds — only worth saying on touch devices */
+  margin: 0 0 0.4rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  border-bottom: 1px dotted currentColor;
+}
+@media (pointer: coarse) {
+  .download__note {
+    display: block;
+  }
+}
+.download {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  color: var(--paper-ink);
+  transition: background 0.12s ease;
+}
+.download:hover,
+.download:focus-visible {
+  background: rgba(36, 26, 18, 0.1);
+}
+.download__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  color: var(--paper-ink);
+}
+.download__os {
+  font-weight: 700;
+}
+.download__format {
+  margin-left: auto;
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+.download--minor {
+  font-size: 0.82rem;
+}
+.download--minor .download__os {
+  font-weight: 400;
+}
+.download--minor .download__icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  opacity: 0.7;
+}
+.download--all {
+  justify-content: center;
+  padding-left: 0;
+  font-weight: 700;
+  opacity: 1;
+}
+
+/* ---- Loose margin annotations ---- */
+.source {
+  position: fixed;
+  z-index: 3;
+  left: var(--margin);
+  top: var(--margin);
+  color: var(--text);
+  font-size: 0.78rem;
+  border-bottom: 1px solid var(--tint);
+  padding-bottom: 0.15rem;
+  transition: color 0.15s ease;
+}
+.source:hover {
+  color: var(--tint);
+}
+.source::after {
+  content: "→";
+  display: inline-block;
+  margin-left: 0.35rem;
+  transition: transform 0.15s ease;
+}
+.source:hover::after {
+  transform: translateX(4px);
+}
+
+.edge {
+  position: fixed;
+  z-index: 3;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.2rem 0.7rem;
+  background: var(--bg-tint); /* opaque backing over the ground so the label stays legible */
+  color: var(--faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.edge--bottom {
+  bottom: calc(var(--margin) - 0.15rem);
+}
+
+/* ---- Cursor follower: a hanko dot trailing the pointer ---- */
+.follower {
+  position: fixed;
+  z-index: 90;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border: 1.5px solid var(--vermilion);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+.follower::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: var(--vermilion);
+}
+@media not (pointer: fine) {
+  .follower {
+    display: none;
+  }
+}
+
+/* ---- The live engine is unavailable: the poster stands in, controls bow out ---- */
+.no-live .field,
+.no-live .themes,
+.no-live .omakase {
+  display: none;
+}
+.no-live .plate__card {
+  cursor: default;
+}
+
+/* ---- Small viewports: plate on top, counter card below ---- */
+@media (max-width: 52rem) {
+  .stage {
+    top: calc(var(--margin) + 2.2rem);
+    bottom: auto;
+    left: var(--margin);
+    right: var(--margin);
+    height: min(46vh, 24rem);
+  }
+  .plate__card {
+    width: min(100%, 40vh, 34rem);
+  }
+  .counter {
+    top: auto;
+    bottom: calc(var(--margin) + 3.6rem);
+    left: var(--margin);
+    right: var(--margin);
+    width: auto;
+    transform: rotate(-0.4deg);
+    padding: 1.2rem 1.15rem 1.5rem;
+  }
+  .counter::before {
+    top: 0.7rem;
+    left: 1.15rem;
+  }
+  .counter__statement {
+    margin-top: 0.7rem;
+  }
+  .counter__detail {
+    display: none;
+  }
+  .field {
+    margin-top: 0.75rem;
+  }
+  .themes,
+  .omakase {
+    margin-top: 0.85rem;
+  }
+  .counter__hint {
+    margin-top: 0.7rem;
+  }
+  .plate__slug {
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    white-space: normal;
+    text-align: center;
+    max-width: 100%;
+  }
+  .downloads-wrap {
+    right: var(--margin);
+    bottom: var(--margin);
+  }
+  /* The drawer becomes a bottom sheet. */
+  .downloads {
+    position: fixed;
+    top: auto;
+    left: calc(var(--margin) * 0.5);
+    right: calc(var(--margin) * 0.5);
+    bottom: calc(var(--margin) * 0.5);
+    width: auto;
+    max-height: 48vh;
+    overflow-y: auto;
+    z-index: 6;
+  }
+  .source {
+    top: auto;
+    bottom: calc(var(--margin) + 0.05rem);
+    left: var(--margin);
+    max-width: calc(100vw - 2 * var(--margin) - 9rem);
+    font-size: 0.7rem;
+    text-wrap: balance;
+    background: var(--bg-tint);
+    padding: 0.2rem 0.4rem 0.3rem;
+  }
+  .edge--bottom {
+    display: none;
+  }
+}
+
+/* Reveal baseline: JS fades the counter in. Without JS it stays visible. */
+.js [data-reveal] {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal] {
+    opacity: 1;
+  }
+  .skip-link {
+    transition: none;
+  }
+  .theme,
+  .omakase__seal,
+  .download-toggle {
+    transition: none;
+  }
+  .omakase:hover .omakase__seal::after,
+  .omakase:active .omakase__seal::after {
+    animation: none;
+  }
+  .follower {
+    display: none;
+  }
+}

@@ -8,22 +8,62 @@ license = "MIT"
 repository = "https://github.com/skvggor/acag"
 readme = "README.md"
 
+[lib]
+# `cdylib` is the WebAssembly artifact for the landing-page hero; `rlib` keeps
+# the binary, tests, and examples linking against the native library.
+crate-type = ["cdylib", "rlib"]
+
 [[bin]]
 name = "acag"
 path = "src/main.rs"
+required-features = ["gui"]
+
+[features]
+default = ["gui"]
+# `render`: rasterization + file I/O (resvg, no GUI). Enough for the asset
+# examples (`gallery`, `icon`, `site`) — and it never pulls in Slint.
+render = ["dep:anyhow", "dep:dirs", "dep:resvg", "dep:toml"]
+# `gui`: the full desktop app on top of `render` (Slint + the Slint compiler).
+gui = ["render", "dep:slint", "dep:slint-build"]
+# Disabling both leaves only the pure cover core (design → typeset → render SVG)
+# plus the `wasm` binding — what the browser build compiles.
 
 [dependencies]
-anyhow = "1.0.102"
-dirs = "6.0.0"
+anyhow = { version = "1.0.102", optional = true }
+dirs = { version = "6.0.0", optional = true }
 fastrand = "2.4.1"
-resvg = "0.47.0"
+resvg = { version = "0.47.0", optional = true }
 serde = { version = "1.0.228", features = ["derive"] }
-slint = { version = "1.16.1", features = ["renderer-software"] }
-toml = "1.1.2"
+slint = { version = "1.16.1", features = ["renderer-software"], optional = true }
+toml = { version = "1.1.2", optional = true }
 ttf-parser = "0.25.1"
 
+# Only pulled in when compiling to wasm32; the native build never sees it.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+
+[[example]]
+name = "gallery"
+required-features = ["render"]
+
+[[example]]
+name = "icon"
+required-features = ["render"]
+
+[[example]]
+name = "site"
+required-features = ["render"]
+
+# Optional so the WebAssembly build (native off) skips compiling the Slint
+# toolchain and its asset-processing tree entirely.
 [build-dependencies]
-slint-build = "1.16.1"
+slint-build = { version = "1.16.1", optional = true }
+
+# The wasm module embeds the Montserrat faces for title metrics, so its size is
+# dominated by font data — and the wasm-opt binary wasm-pack bundles is too old
+# for the bulk-memory ops modern rustc emits. Skip it for a reproducible build.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
 
 [profile.release]
 opt-level = 3
