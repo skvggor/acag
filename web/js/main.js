@@ -484,7 +484,17 @@ function reveal() {
     return;
   }
   window.gsap.set(items, { y: 10, opacity: 0 });
-  window.gsap.to(items, { y: 0, opacity: 1, duration: 0.8, ease: 'power2.out', stagger: 0.12, delay: 0.15 });
+  // clearProps: a leftover transform would turn the downloads wrap into the
+  // containing block of its position: fixed bottom sheet on small viewports.
+  window.gsap.to(items, {
+    y: 0,
+    opacity: 1,
+    duration: 0.8,
+    ease: 'power2.out',
+    stagger: 0.12,
+    delay: 0.15,
+    clearProps: 'transform',
+  });
 }
 
 function withoutLiveEngine() {
