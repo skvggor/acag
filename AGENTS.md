@@ -26,15 +26,23 @@ src/
   raster.rs SVG → Pixmap/PNG by longest edge (resvg + embedded Montserrat)
   export.rs save SVG / PNG (2K or 4K)
   preset.rs save/load named presets as TOML
+  wasm.rs   WebAssembly surface for the landing page (pure part tested natively)
   main.rs   Slint GUI wiring (background export + spinner)
 ui/app.slint     the editor + live preview
-examples/        gallery.rs (docs/samples), icon.rs (app icon + icon.ico)
-build.rs         compiles the Slint UI; embeds the Windows icon resource
+web/             the GitHub Pages landing (index.html · css · js · generated assets)
+examples/        gallery.rs (docs/samples), icon.rs (app icon + icon.ico),
+                 site.rs (web/assets), build_site.rs (web/ → dist/)
+build.rs         compiles the Slint UI (gui only); embeds the Windows icon resource
 ```
 
 The library crate holds all logic and is what tests cover; `main.rs` is thin GUI
 glue. Fonts (Montserrat Black/Bold/Regular) are embedded via `include_bytes!`, so
 no system fonts are needed at runtime.
+
+Cargo features mirror hypso's layering: `gui` (default) ⊃ `render` (resvg + file
+I/O, no Slint) ⊃ the bare pure core (`cover` + `design` + `wasm`), which is what
+`wasm-pack` compiles for the landing page. `export`/`preset`/`raster` only exist
+under `render`; the `acag` binary requires `gui`.
 
 ## Commands
 
@@ -46,6 +54,11 @@ cargo clippy --all-targets -- -D warnings   # lint gate
 cargo llvm-cov --lib --fail-under-lines 80  # coverage gate (library ≥ 80%)
 cargo run --example gallery    # regenerate docs/samples
 cargo run --example icon       # regenerate assets/icons/* (PNGs + icon.ico)
+
+# Landing page (web/ → GitHub Pages)
+wasm-pack build --target web --release --out-dir web/wasm --out-name acag -- --no-default-features
+cargo run --example site --no-default-features --features render  # web/assets (og, poster, icons, fonts)
+cargo run --example build_site --no-default-features              # assemble dist/
 ```
 
 CI (`.github/workflows/ci.yml`) runs fmt, clippy `-D warnings`, `cargo test`, and
@@ -81,13 +94,19 @@ change is done.
 
 `.github/workflows/release.yml` triggers on `v*` tags: builds a Linux AppImage +
 tarball and a standalone Windows `.exe` (static CRT), attached to the GitHub
-release. The AppImage `.desktop` `Categories` must use only freedesktop-registered
+release. `.github/workflows/deploy-site.yml` publishes the landing page to
+GitHub Pages on pushes to `main` that touch the site or the pure core: wasm-pack
+build → `site` example → `build_site` example → deploy `dist/`. The AppImage `.desktop` `Categories` must use only freedesktop-registered
 values (no unregistered `Design`, etc.) or `appimagetool` fails.
 
 ## Gotchas
 
 - Keep preview and export pixel-identical: only the rasterization size differs.
 - Regenerate `docs/samples` (`gallery`) and the icon set (`icon`) when their
-  inputs change; both are committed assets.
+  inputs change; both are committed assets. The same goes for `web/assets`
+  (`site` example); only `web/wasm/` is CI-built and gitignored.
+- `web/js/main.js` mirrors `poster_config()` from `examples/site.rs` as
+  `FIRST_PLATE`/`FIRST_STYLE`; keep them in sync or the poster → live swap
+  flickers.
 - After editing `ui/app.slint`, the build re-runs `slint-build`; mismatched
   property names surface as compile errors in `main.rs`.

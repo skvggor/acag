@@ -6,6 +6,13 @@
 
 pub mod cover;
 pub mod design;
+pub mod wasm;
+
+// Rasterization, film grain, file I/O. Excluded from the wasm build, which needs
+// just the pure cover core above.
+#[cfg(feature = "render")]
 pub mod export;
+#[cfg(feature = "render")]
 pub mod preset;
+#[cfg(feature = "render")]
 pub mod raster;

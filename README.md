@@ -63,6 +63,12 @@ the sumi-ê palette) with [skvggor.dev](https://skvggor.dev) and
 Only the **title** is required; category, date, number and brand are optional, keeping the
 cover generic enough for any platform (blog, dev.to, LinkedIn, X, OG image, thumbnail…).
 
+## Try it in the browser
+
+The [landing page](https://skvggor.github.io/acag/) runs the real engine,
+compiled to WebAssembly: the house plates a new cover every few seconds, and you
+can type your own title and watch it typeset live.
+
 ## Download
 
 Prebuilt binaries are attached to each [GitHub release](https://github.com/skvggor/acag/releases). No Rust toolchain or system dependencies required.
@@ -154,6 +160,11 @@ cargo test                 # unit tests
 cargo run --example gallery  # regenerate docs/samples
 cargo run --example icon     # regenerate the app icon
 ```
+
+The landing page lives in `web/` and deploys to GitHub Pages on pushes to
+`main` (`deploy-site.yml`): `wasm-pack` compiles the pure cover core, the
+`site` example renders the page's imagery with the engine itself, and
+`build_site` assembles `dist/`.
 
 ## Credits
 
