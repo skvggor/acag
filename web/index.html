@@ -75,7 +75,7 @@
     <a class="skip-link" href="#source">Skip to source</a>
 
     <!-- The sheet: a faint wagara ground and film grain, tinted by the current theme. -->
-    <div class="ground" aria-hidden="true"></div>
+    <div class="ground" id="ground" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
 
     <!-- Real heading for assistive tech; the plate draws the visible one. -->
@@ -156,7 +156,10 @@
       <button id="download-toggle" class="download-toggle" type="button" aria-expanded="false" aria-controls="downloads">
         ↓ Downloads
       </button>
-      <div id="downloads" class="downloads" hidden>
+    </div>
+    <!-- Kept outside the (animated) wrap: a leftover transform there would
+         become this fixed panel's containing block and clip it. -->
+    <div id="downloads" class="downloads" hidden>
         <button class="downloads__close" id="downloads-close" type="button">× close</button>
         <p class="download__note">Desktop builds only — Linux and Windows. Grab them on a computer.</p>
         <a class="download" data-platform="linux-appimage" href="https://github.com/skvggor/acag/releases/latest">
@@ -186,15 +189,19 @@
           <span class="download__os">Linux</span>
           <span class="download__format">tarball</span>
         </a>
-        <a class="download download--minor download--all" href="https://github.com/skvggor/acag/releases">All releases →</a>
-      </div>
+      <a class="download download--minor download--all" href="https://github.com/skvggor/acag/releases">All releases →</a>
     </div>
 
     <a id="source" class="source" href="https://github.com/skvggor/acag">
       Read the source, build it yourself
     </a>
 
-    <div class="follower" id="follower" aria-hidden="true"></div>
+    <!-- The brush cursor: a registration ring whose vermilion stroke trails the
+         hand's motion; every press stamps the sheet with the house seal. -->
+    <div class="cursor" id="cursor" aria-hidden="true">
+      <span class="cursor__ring"></span>
+      <span class="cursor__bar"></span>
+    </div>
 
     <p class="edge edge--bottom" aria-hidden="true">Rendered live · Rust → WebAssembly</p>
 
