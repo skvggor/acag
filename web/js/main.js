@@ -15,6 +15,8 @@ const TYPE_MIN_MS = 30;
 const TYPE_JITTER_MS = 40;
 const PARALLAX_PX = 7;
 const PARALLAX_DEG = 1.3;
+const GROUND_PX = 10; // the wagara ground slides against the plate for depth
+const TILT_RANGE = 22; // degrees of device tilt mapped to full parallax
 
 // Mirrors `poster_config()` in examples/site.rs, so swapping the poster for the
 // first live render is invisible.
@@ -61,7 +63,8 @@ const hint = document.getElementById('hint');
 const downloadToggle = document.getElementById('download-toggle');
 const downloadsPanel = document.getElementById('downloads');
 const downloadsClose = document.getElementById('downloads-close');
-const followerElement = document.getElementById('follower');
+const ground = document.getElementById('ground');
+const cursorElement = document.getElementById('cursor');
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const hasGsap = typeof window.gsap !== 'undefined';
@@ -432,46 +435,166 @@ function wireDownloads() {
   });
 }
 
-/* ---- Pointer life: parallax plate, hanko follower ---- */
+/* ---- Motion: the sheet answers the hand (pointer) or the wrist (gyro) ---- */
 
-function wirePointer() {
-  if (!animated || !window.matchMedia('(pointer: fine)').matches) return;
+let applyDrift = null;
 
-  const moveX = window.gsap.quickTo(card, 'x', { duration: 0.7, ease: 'power2.out' });
-  const moveY = window.gsap.quickTo(card, 'y', { duration: 0.7, ease: 'power2.out' });
-  const tiltX = window.gsap.quickTo(card, 'rotationX', { duration: 0.7, ease: 'power2.out' });
-  const tiltY = window.gsap.quickTo(card, 'rotationY', { duration: 0.7, ease: 'power2.out' });
+function wireMotion() {
+  if (!animated) return;
+
+  const cardX = window.gsap.quickTo(card, 'x', { duration: 0.7, ease: 'power2.out' });
+  const cardY = window.gsap.quickTo(card, 'y', { duration: 0.7, ease: 'power2.out' });
+  const cardTiltX = window.gsap.quickTo(card, 'rotationX', { duration: 0.7, ease: 'power2.out' });
+  const cardTiltY = window.gsap.quickTo(card, 'rotationY', { duration: 0.7, ease: 'power2.out' });
+  const groundX = window.gsap.quickTo(ground, 'x', { duration: 1.1, ease: 'power2.out' });
+  const groundY = window.gsap.quickTo(ground, 'y', { duration: 1.1, ease: 'power2.out' });
   window.gsap.set(card, { transformPerspective: 900 });
 
-  const followX = window.gsap.quickTo(followerElement, 'x', { duration: 0.35, ease: 'power3.out' });
-  const followY = window.gsap.quickTo(followerElement, 'y', { duration: 0.35, ease: 'power3.out' });
-  let followerShown = false;
+  applyDrift = (nx, ny) => {
+    cardX(nx * PARALLAX_PX);
+    cardY(ny * PARALLAX_PX * 0.7);
+    cardTiltY(nx * PARALLAX_DEG);
+    cardTiltX(-ny * PARALLAX_DEG);
+    // The ground slides the other way, so the sheet reads as layered depth.
+    groundX(-nx * GROUND_PX);
+    groundY(-ny * GROUND_PX);
+  };
 
   window.addEventListener('pointermove', (event) => {
-    const nx = (event.clientX / window.innerWidth) * 2 - 1;
-    const ny = (event.clientY / window.innerHeight) * 2 - 1;
-    moveX(nx * PARALLAX_PX);
-    moveY(ny * PARALLAX_PX * 0.7);
-    tiltY(nx * PARALLAX_DEG);
-    tiltX(-ny * PARALLAX_DEG);
-    followX(event.clientX);
-    followY(event.clientY);
-    if (!followerShown) {
-      followerShown = true;
-      window.gsap.set(followerElement, { x: event.clientX, y: event.clientY });
-      window.gsap.to(followerElement, { opacity: 0.85, duration: 0.4 });
-    }
-  });
-  document.addEventListener('pointerdown', () => {
-    window.gsap.fromTo(
-      followerElement,
-      { scale: 1 },
-      { scale: 1.55, duration: 0.35, ease: 'power2.out', yoyo: true, repeat: 1 },
+    applyDrift(
+      (event.clientX / window.innerWidth) * 2 - 1,
+      (event.clientY / window.innerHeight) * 2 - 1,
     );
   });
-  document.addEventListener('mouseleave', () => {
-    followerShown = false;
-    window.gsap.to(followerElement, { opacity: 0, duration: 0.3 });
+
+  bindTilt();
+}
+
+/* Device tilt: gamma rolls left/right; beta rests near 45° in a held hand. */
+function handleOrientation(event) {
+  if ((event.gamma == null && event.beta == null) || !applyDrift) return;
+  applyDrift(
+    clamp((event.gamma || 0) / TILT_RANGE, -1, 1),
+    clamp(((event.beta || 45) - 45) / TILT_RANGE, -1, 1),
+  );
+}
+
+function enableTilt() {
+  window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+}
+
+function bindTilt() {
+  const Sensor = window.DeviceOrientationEvent;
+  if (!Sensor) return;
+  if (typeof Sensor.requestPermission === 'function') {
+    // iOS gates the motion sensor behind a user gesture.
+    window.addEventListener(
+      'pointerdown',
+      () => {
+        Sensor.requestPermission()
+          .then((permission) => {
+            if (permission === 'granted') enableTilt();
+          })
+          .catch(() => {});
+      },
+      { once: true },
+    );
+  } else {
+    enableTilt();
+  }
+}
+
+/* ---- The brush cursor: registration ring, motion stroke, hanko stamps ---- */
+
+function pressStamp(x, y) {
+  const seal = document.createElement('span');
+  seal.className = 'stamp';
+  seal.textContent = 'a';
+  document.body.append(seal);
+  window.gsap.set(seal, { x, y, rotation: -14 + Math.random() * 28 });
+  window.gsap.fromTo(
+    seal,
+    { scale: 1.3, opacity: 0.9 },
+    { scale: 1, opacity: 0, duration: 0.9, ease: 'power2.out', onComplete: () => seal.remove() },
+  );
+}
+
+function wireCursor() {
+  if (!animated) return;
+
+  // Every press stamps the sheet, on any pointer — mouse or touch.
+  window.addEventListener('pointerdown', (event) => pressStamp(event.clientX, event.clientY));
+
+  if (!window.matchMedia('(pointer: fine)').matches) return;
+  root.classList.add('cursor-live');
+
+  const ring = cursorElement.querySelector('.cursor__ring');
+  const bar = cursorElement.querySelector('.cursor__bar');
+  const moveX = window.gsap.quickTo(cursorElement, 'x', { duration: 0.16, ease: 'power3.out' });
+  const moveY = window.gsap.quickTo(cursorElement, 'y', { duration: 0.16, ease: 'power3.out' });
+
+  // The stroke: its angle follows the hand's motion, its presence the speed.
+  const stroke = { angle: 0, alpha: 0, reach: 12 };
+  window.gsap.ticker.add(() => {
+    stroke.alpha *= 0.9;
+    const radians = (stroke.angle * Math.PI) / 180;
+    window.gsap.set(bar, {
+      rotation: stroke.angle,
+      x: -Math.cos(radians) * stroke.reach,
+      y: -Math.sin(radians) * stroke.reach,
+      opacity: stroke.alpha,
+    });
+  });
+
+  let shown = false;
+  let last = null;
+  window.addEventListener('pointermove', (event) => {
+    moveX(event.clientX);
+    moveY(event.clientY);
+    if (last) {
+      const dx = event.clientX - last.x;
+      const dy = event.clientY - last.y;
+      const speed = Math.hypot(dx, dy);
+      if (speed > 2) {
+        stroke.angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+        stroke.alpha = Math.min(0.95, speed / 26);
+        stroke.reach = 12 + Math.min(10, speed * 0.35);
+      }
+    }
+    last = { x: event.clientX, y: event.clientY };
+    if (!shown) {
+      shown = true;
+      window.gsap.set(cursorElement, { x: event.clientX, y: event.clientY });
+      window.gsap.to(cursorElement, { opacity: 1, duration: 0.35 });
+    }
+  });
+
+  // The ring answers what it is over: a turned seal over anything pressable,
+  // a thin brush tip over text entry.
+  const setRing = (state) => {
+    const shapes = {
+      idle: { scaleX: 1, scaleY: 1, rotation: 0, borderRadius: '50%' },
+      hover: { scaleX: 1.4, scaleY: 1.4, rotation: 45, borderRadius: '20%' },
+      text: { scaleX: 0.14, scaleY: 1.15, rotation: 0, borderRadius: '2px' },
+    };
+    window.gsap.to(ring, { ...shapes[state], duration: 0.28, ease: 'power3.out', overwrite: 'auto' });
+  };
+  window.addEventListener('pointerover', (event) => {
+    const hit = event.target.closest('a, button, input, [role="button"]');
+    setRing(!hit ? 'idle' : hit.matches('input, textarea') ? 'text' : 'hover');
+  });
+
+  // Pressing squeezes the whole cursor, like a seal meeting paper.
+  window.addEventListener('pointerdown', () => {
+    window.gsap.to(cursorElement, { scale: 0.72, duration: 0.12, ease: 'power2.out' });
+  });
+  window.addEventListener('pointerup', () => {
+    window.gsap.to(cursorElement, { scale: 1, duration: 0.35, ease: 'back.out(2.5)' });
+  });
+
+  document.documentElement.addEventListener('mouseleave', () => {
+    shown = false;
+    window.gsap.to(cursorElement, { opacity: 0, duration: 0.3 });
   });
 }
 
@@ -528,7 +651,6 @@ async function boot() {
   poster.hidden = true;
 
   wireControls();
-  wirePointer();
   reveal();
   scheduleDrift(FIRST_DRIFT_SECONDS);
 
@@ -538,4 +660,8 @@ async function boot() {
 }
 
 wireDownloads();
+// Motion and the cursor are page furniture, not engine features — they live
+// even when WebAssembly is unavailable and the poster stands in.
+wireMotion();
+wireCursor();
 boot();

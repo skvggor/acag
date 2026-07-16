@@ -132,8 +132,11 @@ a {
    the engine's pattern: overlapping upper semicircles in three concentric radii,
    rows offset by half a period. */
 .ground {
+  /* Bleeds past the viewport so the parallax drift never exposes an edge. */
+  inset: -16px;
   background: var(--tint);
   opacity: 0.05;
+  will-change: transform;
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cpath fill='none' stroke='white' stroke-width='2' d='M-120,0%20A60,60%200%200%200%200,0%20M-100,0%20A40,40%200%200%200%20-20,0%20M-80,0%20A20,20%200%200%200%20-40,0%20M0,0%20A60,60%200%200%200%20120,0%20M20,0%20A40,40%200%200%200%20100,0%20M40,0%20A20,20%200%200%200%2080,0%20M120,0%20A60,60%200%200%200%20240,0%20M140,0%20A40,40%200%200%200%20220,0%20M160,0%20A20,20%200%200%200%20200,0%20M-60,60%20A60,60%200%200%200%2060,60%20M-40,60%20A40,40%200%200%200%2040,60%20M-20,60%20A20,20%200%200%200%2020,60%20M60,60%20A60,60%200%200%200%20180,60%20M80,60%20A40,40%200%200%200%20160,60%20M100,60%20A20,20%200%200%200%20140,60%20M-120,120%20A60,60%200%200%200%200,120%20M-100,120%20A40,40%200%200%200%20-20,120%20M-80,120%20A20,20%200%200%200%20-40,120%20M0,120%20A60,60%200%200%200%20120,120%20M20,120%20A40,40%200%200%200%20100,120%20M40,120%20A20,20%200%200%200%2080,120%20M120,120%20A60,60%200%200%200%20240,120%20M140,120%20A40,40%200%200%200%20220,120%20M160,120%20A20,20%200%200%200%20200,120'/%3E%3C/svg%3E");
   mask-repeat: repeat;
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cpath fill='none' stroke='white' stroke-width='2' d='M-120,0%20A60,60%200%200%200%200,0%20M-100,0%20A40,40%200%200%200%20-20,0%20M-80,0%20A20,20%200%200%200%20-40,0%20M0,0%20A60,60%200%200%200%20120,0%20M20,0%20A40,40%200%200%200%20100,0%20M40,0%20A20,20%200%200%200%2080,0%20M120,0%20A60,60%200%200%200%20240,0%20M140,0%20A40,40%200%200%200%20220,0%20M160,0%20A20,20%200%200%200%20200,0%20M-60,60%20A60,60%200%200%200%2060,60%20M-40,60%20A40,40%200%200%200%2040,60%20M-20,60%20A20,20%200%200%200%2020,60%20M60,60%20A60,60%200%200%200%20180,60%20M80,60%20A40,40%200%200%200%20160,60%20M100,60%20A20,20%200%200%200%20140,60%20M-120,120%20A60,60%200%200%200%200,120%20M-100,120%20A40,40%200%200%200%20-20,120%20M-80,120%20A20,20%200%200%200%20-40,120%20M0,120%20A60,60%200%200%200%20120,120%20M20,120%20A40,40%200%200%200%20100,120%20M40,120%20A20,20%200%200%200%2080,120%20M120,120%20A60,60%200%200%200%20240,120%20M140,120%20A40,40%200%200%200%20220,120%20M160,120%20A20,20%200%200%200%20200,120'/%3E%3C/svg%3E");
@@ -506,10 +509,12 @@ a {
   color: var(--tint);
 }
 
+/* Anchored to the viewport, never to the (animated) wrap. */
 .downloads {
-  position: absolute;
-  bottom: calc(100% + 0.6rem);
-  right: 0;
+  position: fixed;
+  z-index: 6;
+  right: var(--margin);
+  bottom: calc(var(--margin) + 4.6rem);
   width: 19.5rem;
   display: grid;
   gap: 0.15rem;
@@ -670,34 +675,63 @@ a {
   bottom: calc(var(--margin) - 0.15rem);
 }
 
-/* ---- Cursor follower: a hanko dot trailing the pointer ---- */
-.follower {
+/* ---- The brush cursor: a registration ring, a vermilion stroke that trails
+   the hand, and hanko stamps on every press. JS adds `cursor-live` only on
+   fine pointers with motion allowed, replacing the native arrow. ---- */
+.cursor-live,
+.cursor-live * {
+  cursor: none;
+}
+
+.cursor {
   position: fixed;
-  z-index: 90;
+  z-index: 100;
   top: 0;
   left: 0;
-  width: 26px;
-  height: 26px;
-  margin: -13px 0 0 -13px;
-  border: 1.5px solid var(--vermilion);
-  border-radius: 50%;
   opacity: 0;
   pointer-events: none;
   will-change: transform;
 }
-.follower::before {
-  content: "";
+.cursor__ring {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 4px;
-  height: 4px;
-  margin: -2px 0 0 -2px;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 1.5px solid var(--vermilion);
   border-radius: 50%;
-  background: var(--vermilion);
 }
+.cursor__bar {
+  position: absolute;
+  width: 16px;
+  height: 3px;
+  margin: -1.5px 0 0 -8px;
+  background: var(--vermilion);
+  opacity: 0;
+}
+
+/* The house seal, pressed wherever the visitor presses. */
+.stamp {
+  position: fixed;
+  z-index: 99;
+  top: 0;
+  left: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin: -0.8rem 0 0 -0.8rem;
+  display: grid;
+  place-items: center;
+  background: var(--vermilion);
+  color: var(--paper);
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 0.9rem;
+  line-height: 1;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
 @media not (pointer: fine) {
-  .follower {
+  .cursor {
     display: none;
   }
 }
@@ -812,7 +846,8 @@ a {
   .omakase:active .omakase__seal::after {
     animation: none;
   }
-  .follower {
+  .cursor,
+  .stamp {
     display: none;
   }
 }
