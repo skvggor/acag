@@ -53,6 +53,11 @@
     <link rel="manifest" href="./site.webmanifest" />
 
     <link rel="stylesheet" href="./css/style.css" />
+    <!-- Synchronous, before first paint: reveal-hidden elements and the noren
+         curtain must never flash in or out of existence. -->
+    <script>
+      document.documentElement.classList.add("js");
+    </script>
 
     <script type="application/ld+json">
       {
@@ -72,6 +77,22 @@
     </script>
   </head>
   <body>
+    <!-- The noren: the entrance curtain hangs while the engine warms up, then
+         parts to open the counter. Painted only when JS runs (the head script
+         adds `js`); boot() lifts and removes it. -->
+    <div class="noren" id="noren" aria-hidden="true">
+      <div class="noren__band" style="--band: 0"></div>
+      <div class="noren__band" style="--band: 1"></div>
+      <div class="noren__band" style="--band: 2"></div>
+      <div class="noren__band" style="--band: 3"></div>
+      <div class="noren__band" style="--band: 4"></div>
+      <div class="noren__crest">
+        <span class="noren__seal" lang="ja">任</span>
+        <span class="noren__label">acag</span>
+        <span class="noren__note">the house is opening</span>
+      </div>
+    </div>
+
     <a class="skip-link" href="#source">Skip to source</a>
 
     <!-- The sheet: a faint wagara ground and film grain, tinted by the current theme. -->
@@ -196,8 +217,8 @@
       Read the source, build it yourself
     </a>
 
-    <!-- The brush cursor: a registration ring whose vermilion stroke trails the
-         hand's motion; every press stamps the sheet with the house seal. -->
+    <!-- The brush cursor: a registration ring whose vermilion stroke trails
+         the hand's motion. Presses send a wave through the wagara ground. -->
     <div class="cursor" id="cursor" aria-hidden="true">
       <span class="cursor__ring"></span>
       <span class="cursor__bar"></span>

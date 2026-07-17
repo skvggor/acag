@@ -54,6 +54,10 @@
   --kanji: "Noto Serif CJK JP", "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
   --margin: clamp(1.1rem, 3.4vw, 2.75rem);
   --counter-w: min(23rem, 30vw);
+  /* One seigaiha tile, shared by the ground and the noren cloth. Same geometry
+     as the engine's pattern: overlapping upper semicircles in three concentric
+     radii, rows offset by half a period. */
+  --seigaiha: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cpath fill='none' stroke='white' stroke-width='2' d='M-120,0%20A60,60%200%200%200%200,0%20M-100,0%20A40,40%200%200%200%20-20,0%20M-80,0%20A20,20%200%200%200%20-40,0%20M0,0%20A60,60%200%200%200%20120,0%20M20,0%20A40,40%200%200%200%20100,0%20M40,0%20A20,20%200%200%200%2080,0%20M120,0%20A60,60%200%200%200%20240,0%20M140,0%20A40,40%200%200%200%20220,0%20M160,0%20A20,20%200%200%200%20200,0%20M-60,60%20A60,60%200%200%200%2060,60%20M-40,60%20A40,40%200%200%200%2040,60%20M-20,60%20A20,20%200%200%200%2020,60%20M60,60%20A60,60%200%200%200%20180,60%20M80,60%20A40,40%200%200%200%20160,60%20M100,60%20A20,20%200%200%200%20140,60%20M-120,120%20A60,60%200%200%200%200,120%20M-100,120%20A40,40%200%200%200%20-20,120%20M-80,120%20A20,20%200%200%200%20-40,120%20M0,120%20A60,60%200%200%200%20120,120%20M20,120%20A40,40%200%200%200%20100,120%20M40,120%20A20,20%200%200%200%2080,120%20M120,120%20A60,60%200%200%200%20240,120%20M140,120%20A40,40%200%200%200%20220,120%20M160,120%20A20,20%200%200%200%20200,120'/%3E%3C/svg%3E");
 }
 
 * {
@@ -128,19 +132,33 @@ a {
   pointer-events: none;
 }
 
-/* Seigaiha fans as an alpha mask, painted with the live tint. Same geometry as
-   the engine's pattern: overlapping upper semicircles in three concentric radii,
-   rows offset by half a period. */
+/* Seigaiha fans as an alpha mask, painted with the live tint. */
 .ground {
-  /* Bleeds past the viewport so the parallax drift never exposes an edge. */
+  /* Bleeds past the viewport so the parallax drift never exposes an edge.
+     The tint sits in the background color (not element opacity) so the press
+     waves below can ride the same mask at full strength. */
   inset: -16px;
-  background: var(--tint);
-  opacity: 0.05;
+  background: color-mix(in srgb, var(--tint) 5%, transparent);
   will-change: transform;
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cpath fill='none' stroke='white' stroke-width='2' d='M-120,0%20A60,60%200%200%200%200,0%20M-100,0%20A40,40%200%200%200%20-20,0%20M-80,0%20A20,20%200%200%200%20-40,0%20M0,0%20A60,60%200%200%200%20120,0%20M20,0%20A40,40%200%200%200%20100,0%20M40,0%20A20,20%200%200%200%2080,0%20M120,0%20A60,60%200%200%200%20240,0%20M140,0%20A40,40%200%200%200%20220,0%20M160,0%20A20,20%200%200%200%20200,0%20M-60,60%20A60,60%200%200%200%2060,60%20M-40,60%20A40,40%200%200%200%2040,60%20M-20,60%20A20,20%200%200%200%2020,60%20M60,60%20A60,60%200%200%200%20180,60%20M80,60%20A40,40%200%200%200%20160,60%20M100,60%20A20,20%200%200%200%20140,60%20M-120,120%20A60,60%200%200%200%200,120%20M-100,120%20A40,40%200%200%200%20-20,120%20M-80,120%20A20,20%200%200%200%20-40,120%20M0,120%20A60,60%200%200%200%20120,120%20M20,120%20A40,40%200%200%200%20100,120%20M40,120%20A20,20%200%200%200%2080,120%20M120,120%20A60,60%200%200%200%20240,120%20M140,120%20A40,40%200%200%200%20220,120%20M160,120%20A20,20%200%200%200%20200,120'/%3E%3C/svg%3E");
+  mask-image: var(--seigaiha);
   mask-repeat: repeat;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cpath fill='none' stroke='white' stroke-width='2' d='M-120,0%20A60,60%200%200%200%200,0%20M-100,0%20A40,40%200%200%200%20-20,0%20M-80,0%20A20,20%200%200%200%20-40,0%20M0,0%20A60,60%200%200%200%20120,0%20M20,0%20A40,40%200%200%200%20100,0%20M40,0%20A20,20%200%200%200%2080,0%20M120,0%20A60,60%200%200%200%20240,0%20M140,0%20A40,40%200%200%200%20220,0%20M160,0%20A20,20%200%200%200%20200,0%20M-60,60%20A60,60%200%200%200%2060,60%20M-40,60%20A40,40%200%200%200%2040,60%20M-20,60%20A20,20%200%200%200%2020,60%20M60,60%20A60,60%200%200%200%20180,60%20M80,60%20A40,40%200%200%200%20160,60%20M100,60%20A20,20%200%200%200%20140,60%20M-120,120%20A60,60%200%200%200%200,120%20M-100,120%20A40,40%200%200%200%20-20,120%20M-80,120%20A20,20%200%200%200%20-40,120%20M0,120%20A60,60%200%200%200%20120,120%20M20,120%20A40,40%200%200%200%20100,120%20M40,120%20A20,20%200%200%200%2080,120%20M120,120%20A60,60%200%200%200%20240,120%20M140,120%20A40,40%200%200%200%20220,120%20M160,120%20A20,20%200%200%200%20200,120'/%3E%3C/svg%3E");
+  -webkit-mask-image: var(--seigaiha);
   -webkit-mask-repeat: repeat;
+}
+
+/* A press wave: ink meeting water. A child of the ground, so it is clipped by
+   the same seigaiha mask and drifts with the same parallax. */
+.ground__wave {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, transparent 55%, var(--tint) 80%, transparent 100%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .grain {
@@ -675,9 +693,9 @@ a {
   bottom: calc(var(--margin) - 0.15rem);
 }
 
-/* ---- The brush cursor: a registration ring, a vermilion stroke that trails
-   the hand, and hanko stamps on every press. JS adds `cursor-live` only on
-   fine pointers with motion allowed, replacing the native arrow. ---- */
+/* ---- The brush cursor: a registration ring and a vermilion stroke that
+   trails the hand. JS adds `cursor-live` only on fine pointers with motion
+   allowed, replacing the native arrow. ---- */
 .cursor-live,
 .cursor-live * {
   cursor: none;
@@ -709,31 +727,112 @@ a {
   opacity: 0;
 }
 
-/* The house seal, pressed wherever the visitor presses. */
-.stamp {
-  position: fixed;
-  z-index: 99;
-  top: 0;
-  left: 0;
-  width: 1.6rem;
-  height: 1.6rem;
-  margin: -0.8rem 0 0 -0.8rem;
-  display: grid;
-  place-items: center;
-  background: var(--vermilion);
-  color: var(--paper);
-  font-family: var(--display);
-  font-weight: 900;
-  font-size: 0.9rem;
-  line-height: 1;
-  border-radius: 3px;
-  pointer-events: none;
-}
-
 @media not (pointer: fine) {
   .cursor {
     display: none;
   }
+}
+
+/* ---- The noren: the entrance curtain, hung while the engine warms up.
+   Five bands of ink-dyed cloth on a vermilion rod; the house crest presses
+   rhythmically until boot() parts the curtain and removes it. ---- */
+.noren {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: none;
+  gap: 2px;
+}
+.js .noren {
+  display: flex;
+  /* Safety valve: if the module script never lifts it, pure CSS does. */
+  animation: noren-rescue 0.6s ease 9s forwards;
+}
+.noren__band {
+  position: relative;
+  flex: 1;
+  background: linear-gradient(180deg, #0f0c09, #191410);
+  border-top: 5px solid var(--vermilion);
+  overflow: hidden;
+}
+/* The dye runs across the whole cloth, continuous over the slits. */
+.noren__band::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--text);
+  opacity: 0.05;
+  mask-image: var(--seigaiha);
+  mask-repeat: repeat;
+  mask-position: calc(var(--band) * -20vw) 0;
+  -webkit-mask-image: var(--seigaiha);
+  -webkit-mask-repeat: repeat;
+  -webkit-mask-position: calc(var(--band) * -20vw) 0;
+}
+.noren__crest {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.55rem;
+  color: var(--text);
+  text-align: center;
+}
+.noren__seal {
+  position: relative;
+  width: 4.2rem;
+  height: 4.2rem;
+  display: grid;
+  place-items: center;
+  background: var(--vermilion);
+  color: var(--paper);
+  border-radius: 50%;
+  font-family: var(--kanji);
+  font-size: 2rem;
+  line-height: 1;
+  box-shadow:
+    inset 0 0 0 2px rgba(242, 236, 221, 0.22),
+    0 4px 14px rgba(8, 6, 4, 0.4);
+  animation: noren-press 1.7s ease-in-out infinite;
+}
+.noren__seal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--vermilion);
+  border-radius: 50%;
+  opacity: 0;
+  animation: seal-radiate 1.7s ease-out infinite;
+}
+@keyframes noren-press {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.92);
+  }
+}
+@keyframes noren-rescue {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+.noren__label {
+  margin-top: 0.3rem;
+  font-weight: 900;
+  font-size: 1.05rem;
+  letter-spacing: 0.32em;
+  text-indent: 0.32em; /* recenters the tracked wordmark */
+}
+.noren__note {
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--dim);
 }
 
 /* ---- The live engine is unavailable: the poster stands in, controls bow out ---- */
@@ -825,9 +924,16 @@ a {
   }
 }
 
-/* Reveal baseline: JS fades the counter in. Without JS it stays visible. */
+/* Reveal baseline: JS fades the counter in. Without JS it stays visible. The
+   delayed animation is a safety valve: if reveal() never runs, CSS un-hides. */
 .js [data-reveal] {
   opacity: 0;
+  animation: reveal-rescue 0.6s ease 7s forwards;
+}
+@keyframes reveal-rescue {
+  to {
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -846,8 +952,14 @@ a {
   .omakase:active .omakase__seal::after {
     animation: none;
   }
-  .cursor,
-  .stamp {
+  .cursor {
     display: none;
+  }
+  .noren__seal,
+  .noren__seal::after {
+    animation: none;
+  }
+  .noren__seal::after {
+    opacity: 0;
   }
 }
