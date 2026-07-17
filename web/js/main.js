@@ -17,6 +17,10 @@ const PARALLAX_PX = 7;
 const PARALLAX_DEG = 1.3;
 const GROUND_PX = 10; // the wagara ground slides against the plate for depth
 const TILT_RANGE = 22; // degrees of device tilt mapped to full parallax
+const WAVE_BASE_PX = 40; // matches .ground__wave in the stylesheet
+const WAVE_SECONDS = 1.4;
+const NOREN_MIN_MS = 700; // the curtain holds at least this long, so opening reads as staged
+const RESCUE_MS = 7000; // mirrors the CSS reveal-rescue valve
 
 // Mirrors `poster_config()` in examples/site.rs, so swapping the poster for the
 // first live render is invisible.
@@ -65,12 +69,12 @@ const downloadsPanel = document.getElementById('downloads');
 const downloadsClose = document.getElementById('downloads-close');
 const ground = document.getElementById('ground');
 const cursorElement = document.getElementById('cursor');
+const noren = document.getElementById('noren');
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const hasGsap = typeof window.gsap !== 'undefined';
 const animated = hasGsap && !reducedMotion;
-
-root.classList.add('js');
+const bootStarted = performance.now();
 
 let renderCover = null;
 let catalog = null;
@@ -467,7 +471,36 @@ function wireMotion() {
     );
   });
 
+  // Every press sends a wave through the cloth — ink meeting water.
+  window.addEventListener('pointerdown', (event) => pressWave(event.clientX, event.clientY));
+
   bindTilt();
+}
+
+/** A ripple through the seigaiha ground, radiating from the press point. */
+function pressWave(x, y) {
+  const rect = ground.getBoundingClientRect();
+  const wave = document.createElement('span');
+  wave.className = 'ground__wave';
+  ground.append(wave);
+  const reach = Math.hypot(
+    Math.max(x, window.innerWidth - x),
+    Math.max(y, window.innerHeight - y),
+  );
+  // The gradient ring sits at 80% of the radius; scale it past the far corner.
+  const scale = (reach * 1.15) / (WAVE_BASE_PX * 0.4);
+  window.gsap.set(wave, { x: x - rect.left, y: y - rect.top });
+  window.gsap.fromTo(
+    wave,
+    { scale: 0, opacity: 0.55 },
+    {
+      scale,
+      opacity: 0,
+      duration: WAVE_SECONDS,
+      ease: 'power2.out',
+      onComplete: () => wave.remove(),
+    },
+  );
 }
 
 /* Device tilt: gamma rolls left/right; beta rests near 45° in a held hand. */
@@ -504,27 +537,10 @@ function bindTilt() {
   }
 }
 
-/* ---- The brush cursor: registration ring, motion stroke, hanko stamps ---- */
-
-function pressStamp(x, y) {
-  const seal = document.createElement('span');
-  seal.className = 'stamp';
-  seal.textContent = 'a';
-  document.body.append(seal);
-  window.gsap.set(seal, { x, y, rotation: -14 + Math.random() * 28 });
-  window.gsap.fromTo(
-    seal,
-    { scale: 1.3, opacity: 0.9 },
-    { scale: 1, opacity: 0, duration: 0.9, ease: 'power2.out', onComplete: () => seal.remove() },
-  );
-}
+/* ---- The brush cursor: registration ring and motion stroke ---- */
 
 function wireCursor() {
   if (!animated) return;
-
-  // Every press stamps the sheet, on any pointer — mouse or touch.
-  window.addEventListener('pointerdown', (event) => pressStamp(event.clientX, event.clientY));
-
   if (!window.matchMedia('(pointer: fine)').matches) return;
   root.classList.add('cursor-live');
 
@@ -600,9 +616,20 @@ function wireCursor() {
 
 /* ---- Boot ---- */
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Wait for `promise`, but never longer than `ms`; failures count as settled. */
+function settled(promise, ms) {
+  return Promise.race([Promise.resolve(promise).catch(() => {}), delay(ms)]);
+}
+
 function reveal() {
   const items = document.querySelectorAll('[data-reveal]');
-  if (!animated) {
+  // Past the CSS rescue valve the items are already visible; don't re-hide.
+  const rescued = performance.now() - bootStarted > RESCUE_MS;
+  if (!animated || rescued) {
     for (const item of items) item.style.opacity = 1;
     return;
   }
@@ -615,15 +642,47 @@ function reveal() {
     duration: 0.8,
     ease: 'power2.out',
     stagger: 0.12,
-    delay: 0.15,
+    delay: 0.3,
     clearProps: 'transform',
   });
 }
 
-function withoutLiveEngine() {
+/** The curtain parts from the center out; the crest bows out first. */
+function liftNoren() {
+  if (!animated) {
+    noren.remove();
+    return;
+  }
+  const bands = noren.querySelectorAll('.noren__band');
+  const crest = noren.querySelector('.noren__crest');
+  const timeline = window.gsap.timeline({ onComplete: () => noren.remove() });
+  timeline.to(crest, { opacity: 0, scale: 0.9, duration: 0.3, ease: 'power2.in' }, 0);
+  timeline.to(
+    bands,
+    {
+      yPercent: -103,
+      duration: 0.9,
+      ease: 'power3.inOut',
+      stagger: { each: 0.07, from: 'center' },
+    },
+    0.12,
+  );
+}
+
+/** The house opens: fonts settle, the curtain holds a beat, then parts. */
+async function openHouse() {
+  await settled(document.fonts.ready, 1500);
+  const elapsed = performance.now() - bootStarted;
+  if (elapsed < NOREN_MIN_MS) await delay(NOREN_MIN_MS - elapsed);
+  liftNoren();
+  reveal();
+}
+
+async function withoutLiveEngine() {
   root.classList.add('no-live');
   hint.textContent = 'The live engine needs WebAssembly — this plate was pre-rendered by the same code.';
-  reveal();
+  await settled(poster.decode(), 1200);
+  await openHouse();
 }
 
 async function boot() {
@@ -635,7 +694,7 @@ async function boot() {
     await module.default();
   } catch (error) {
     console.warn('acag wasm unavailable:', error);
-    withoutLiveEngine();
+    await withoutLiveEngine();
     return;
   }
 
@@ -651,12 +710,12 @@ async function boot() {
   poster.hidden = true;
 
   wireControls();
-  reveal();
-  scheduleDrift(FIRST_DRIFT_SECONDS);
-
   window.addEventListener('resize', () => {
     if (live) applySize(true);
   });
+
+  await openHouse();
+  scheduleDrift(FIRST_DRIFT_SECONDS);
 }
 
 wireDownloads();
